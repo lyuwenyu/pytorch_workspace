@@ -31,13 +31,14 @@ class group_normalization(nn.Module):
 
         mean = x.mean(dim=-1, keepdim=True)
         std = x.std(dim=-1, keepdim=True)
-
+        # var = x.var(dim=-1, keepdim=True)
 
         x = (x-mean) / (std+self.eps)
+        # x = (x-mean) / torch.sqrt(var+self.eps)
 
         x = x.view(n,c,h,w)
 
-        x = self.gamma * x + self.beta
+        x = x * self.gamma + self.beta
 
         return x
 
