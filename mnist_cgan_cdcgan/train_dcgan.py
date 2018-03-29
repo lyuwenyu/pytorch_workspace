@@ -39,7 +39,7 @@ for e in range(100):
         for _ in range(2):
 
             x = Variable(imgs.float().view(batch_size, 1, 28,28))
-            y = Variable(labs.float().view(batch_size, -1, 1, 1))
+            y = Variable(labs.float().view(batch_size, 10, 1, 1))
         
             y_exp = Variable( torch.zeros(batch_size, 10, 28,28) ) + y
             z = Variable( torch.randn(batch_size, 100, 1, 1))
@@ -50,8 +50,8 @@ for e in range(100):
             fake.detach()
             d_fake = dnet(fake, y_exp)
 
-            d_loss = crit(d_real, Variable( torch.ones(batch_size,1,1,1).float() ) )  + \
-                        crit(d_fake, Variable( torch.zeros(batch_size,1,1,1).float() ))
+            d_loss = crit(d_real, Variable( torch.ones(batch_size,1).float() ) )  + \
+                        crit(d_fake, Variable( torch.zeros(batch_size,1).float() ))
 
             d_optim.zero_grad()
             d_loss.backward()
@@ -65,7 +65,7 @@ for e in range(100):
         y = torch.eye(10)
         index = np.random.randint(0,10, (batch_size))
         y = y[ torch.from_numpy(index) ]
-        y = Variable( y.view(batch_size, -1, 1, 1) )
+        y = Variable( y.view(batch_size, 10, 1, 1) )
 
         y_exp = Variable( torch.zeros(batch_size, 10, 28,28) ) + y
 
@@ -73,7 +73,7 @@ for e in range(100):
         fake = gnet(z, y)
         d_fake = dnet(fake, y_exp)
 
-        g_loss = crit(d_fake, Variable( torch.ones(batch_size,1,1,1).float() ))
+        g_loss = crit(d_fake, Variable( torch.ones(batch_size,1).float() ))
 
 
         g_optim.zero_grad()
@@ -81,7 +81,7 @@ for e in range(100):
         g_optim.step()
 
 
-        if i%50 == 0:
+        if i%20 == 0:
             print(e, i, d_loss.data.numpy(), g_loss.data.numpy())
 
             gnet.eval()
