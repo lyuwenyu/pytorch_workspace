@@ -8,7 +8,7 @@ import numpy as np
 from data.dataset import MNIST
 import torchvision.utils as vutils
 
-batch_size = 60
+batch_size = 50
 
 mnist = MNIST()
 dataloader = data.DataLoader(mnist, batch_size=batch_size, shuffle=True)
@@ -35,10 +35,9 @@ for e in range(100):
 
         # train d
         for _ in range(2):
-            
+
             x = Variable(imgs.float().view(batch_size, 1, 28,28))
             y = Variable(labs.float().view(batch_size, -1, 1, 1))
-
         
             y_exp = Variable( torch.zeros(batch_size, 10, 28,28) ) + y
             z = Variable( torch.randn(batch_size, 100, 1, 1))
@@ -81,7 +80,7 @@ for e in range(100):
 
 
         if i%50 == 0:
-            print(d_loss.data.numpy(), g_loss.data.numpy())
+            print(e, i, d_loss.data.numpy(), g_loss.data.numpy())
 
     gnet.eval()
     vutils.save_image( gnet(fixed_z, fixed_y) , './output/dcgan_{:0>3}.jpg'.format(e), nrow=10)

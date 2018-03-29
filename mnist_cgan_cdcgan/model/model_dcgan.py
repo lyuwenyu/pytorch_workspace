@@ -26,10 +26,10 @@ class generator(nn.Module):
 
         out = torch.cat([z, y], dim=1)  # [batch, 110, 1, 1]
 
-        out = F.relu( self.deconv1(out) )
+        out = F.relu( self.bn1( self.deconv1(out) ) )
         # out = self.bn1(out)
 
-        out = F.relu( self.deconv2(out) )
+        out = F.relu( self.bn2( self.deconv2(out) ) )
         # out = self.bn2(out)
 
         out = self.deconv3(out)
@@ -44,9 +44,10 @@ class discriminator(nn.Module):
         super(discriminator, self).__init__()
 
         self.conv1 = nn.Conv2d(11, 128, kernel_size=5, stride=2)
-        
+        self.bn1 = nn.BatchNorm2d(128)
+
         self.conv2 = nn.Conv2d(128, 256, kernel_size=5, stride=2)
-        self.bn = nn.BatchNorm2d(256)
+        self.bn2 = nn.BatchNorm2d(256)
 
         self.conv3 = nn.Conv2d(256, 1, kernel_size=4, stride=1)
 
@@ -55,11 +56,10 @@ class discriminator(nn.Module):
 
         out = torch.cat([x, y], dim=1)
 
-        out = F.relu( self.conv1(out) )
+        out = F.relu( self.bn1( self.conv1(out) ) )
 
-        out = F.relu( self.conv2(out) )
-        # out = self.bn(out)
-        
+        out = F.relu( self.bn2( self.conv2(out) ) )
+
         out = self.conv3(out)
 
         return F.sigmoid(out)
