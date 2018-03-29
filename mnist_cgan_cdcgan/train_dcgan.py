@@ -29,9 +29,11 @@ fixed_y = Variable( torch.cat([torch.eye(10,10)]*10, dim=0).view(100, 10, 1, 1))
 for e in range(100):
 
     # dnet.train()
-    gnet.train()
+    
 
     for i, (imgs, labs) in enumerate(dataloader):
+
+        gnet.train()
 
         # train d
         for _ in range(2):
@@ -82,5 +84,6 @@ for e in range(100):
         if i%50 == 0:
             print(e, i, d_loss.data.numpy(), g_loss.data.numpy())
 
-    gnet.eval()
-    vutils.save_image( gnet(fixed_z, fixed_y) , './output/dcgan_{:0>3}.jpg'.format(e), nrow=10)
+            gnet.eval()
+            fake = gnet(fixed_z, fixed_y)
+            vutils.save_image( fake.data , './output/dcgan_{:0>3}.jpg'.format(e), nrow=10)
