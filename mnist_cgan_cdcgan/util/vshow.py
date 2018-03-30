@@ -8,7 +8,7 @@ pwd = os.path.dirname(__file__)
 
 imgs = []
 
-imgs_path = glob.glob( pwd + '/../output/*.jpg')
+imgs_path = glob.glob( pwd + '/../output/dc*.jpg')
 
 imgs_path = sorted(imgs_path)
 print(len(imgs_path))
@@ -17,4 +17,4 @@ for pp in imgs_path:
 
     imgs.append( imageio.imread(pp) )
 
-imageio.mimsave(pwd + '/generator.gif', imgs, fps=5)
+imageio.mimsave(pwd + '/cdcgan_generator.gif', imgs, fps=5)

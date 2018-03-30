@@ -20,7 +20,7 @@ class MNIST(data.Dataset):
 
     def __getitem__(self, i):
 
-        
+        # (self.imgs[i]-0.5)/0.5
         return (self.imgs[i]-0.5)/0.5, self.labs[i]
 
 

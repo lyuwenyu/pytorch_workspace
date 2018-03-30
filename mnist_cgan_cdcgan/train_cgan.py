@@ -42,22 +42,24 @@ def train():
 
             ### train d
 
-            x = Variable( imgs.float() )
-            y = Variable( labs.float() )
-            z = Variable( torch.randn(batch_size, 100))
+            for _ in range(5):
 
-            d_real = dnet(x, y)
+                x = Variable( imgs.float() )
+                y = Variable( labs.float() )
+                z = Variable( torch.randn(batch_size, 100))
 
-            fake = gnet(z, y)
-            d_fake = dnet(fake, y)
+                d_real = dnet(x, y)
 
+                fake = gnet(z, y)
+                fake.detach()
+                d_fake = dnet(fake, y)
 
-            d_loss = crit(d_real, Variable( torch.ones(batch_size,1).float() ) ) \
-                    + crit(d_fake, Variable( torch.zeros(batch_size,1).float() ))
+                d_loss = crit(d_real, Variable( torch.ones(batch_size,1).float() ) ) \
+                        + crit(d_fake, Variable( torch.zeros(batch_size,1).float() ))
 
-            d_optim.zero_grad()
-            d_loss.backward()
-            d_optim.step()
+                d_optim.zero_grad()
+                d_loss.backward()
+                d_optim.step()
 
 
             ### train g
@@ -66,7 +68,7 @@ def train():
             index = np.random.randint(0,10, (batch_size))
             y = y[ torch.from_numpy(index) ]
             y = Variable( y )
-            # y = Variable( torch.from_numpy(y).float() )
+
             z = Variable( torch.randn(batch_size, 100))
 
             fake = gnet(z, y)
@@ -84,7 +86,7 @@ def train():
 
                 
         fake = gnet(fixed_z, fixed_y)
-        vutils.save_image(fake.data.view(100, 1, 28, 28), nrow=10, filename='./output/test_1_{:0>3}.jpg'.format(e))
+        vutils.save_image(fake.data.view(100, 1, 28, 28), nrow=10, filename='./output/test_2_{:0>3}.jpg'.format(e))
 
 
 if __name__ == '__main__':
