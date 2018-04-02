@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import torchvision.models as models
-
+import torch.nn.init as init
 
 
 class lstm_layer(nn.Module):
@@ -16,6 +16,9 @@ class lstm_layer(nn.Module):
         
         self.lstm2 = nn.LSTM(c, c//4, 2, bidirectional=True)
         
+        
+        self.apply(self._weight_init)
+
         
     def forward(self, x):
             
@@ -31,6 +34,20 @@ class lstm_layer(nn.Module):
         x = torch.cat([x1, x2], dim=1)
 
         return x
+
+
+    
+    def _weight_init(self, m):
+
+        if isinstance(m, nn.LSTM):
+
+            for n, p in m.named_parameters():
+
+                if 'weight' in n:
+                    init.xavier_normal(p.data)
+
+                elif 'bias' in n:
+                    p.data.zero_()
 
 
 
@@ -53,8 +70,6 @@ class resnet_lstm_contex(nn.Module):
         
         self.lstm_layer = nn.ModuleList( [lstm_layer(c) for c in [256, 512, 1024, 2048] ] )
         
-        
-        
     def forward(self, x):
         
         for i, (n, m) in enumerate( self.model.named_children() ):
@@ -74,8 +89,7 @@ class resnet_lstm_contex(nn.Module):
                 
         return x
         
-    
-    
+
    
 if __name__ == '__main__':
 
