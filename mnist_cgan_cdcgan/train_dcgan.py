@@ -34,6 +34,7 @@ if torch.cuda.is_available():
     fixed_y = fixed_y.cuda()
     fixed_z = fixed_z.cuda()
 
+l1loss = nn.L1Loss()
 
 for e in range(100):
 
@@ -48,8 +49,9 @@ for e in range(100):
         for _ in range(2):
 
             x = Variable(imgs.float().view(batch_size, 1, 28,28))
+
+
             y = Variable(labs.float().view(batch_size, 10, 1, 1))
-        
             y_exp = Variable( torch.zeros(batch_size, 10, 28,28) ) + y
             # z = Variable( torch.randn(batch_size, 100, 1, 1))
             z = Variable( (torch.rand(batch_size, 100, 1, 1)-0.5)/0.5 )
@@ -67,7 +69,7 @@ for e in range(100):
             fake.detach()
             d_fake = dnet(fake, y_exp)
 
-            if torch.cuda.is_available()
+            if torch.cuda.is_available():
                 d_loss = crit(d_real, Variable( torch.ones(batch_size,1).float().cuda() ) )  + \
                             crit(d_fake, Variable( torch.zeros(batch_size,1).float().cuda() ))
             else:
@@ -81,28 +83,28 @@ for e in range(100):
 
         # train g
 
-        # z = Variable( torch.randn(batch_size, 100, 1, 1))
-        z = Variable( (torch.rand(batch_size, 100, 1, 1)-0.5)/0.5 )
+        # # z = Variable( torch.randn(batch_size, 100, 1, 1))
+        # z = Variable( (torch.rand(batch_size, 100, 1, 1)-0.5)/0.5 )
 
-        y = torch.eye(10)
-        index = np.random.randint(0,10, (batch_size))
-        y = y[ torch.from_numpy(index) ]
-        y = Variable( y.view(batch_size, 10, 1, 1) )
+        # y = torch.eye(10)
+        # index = np.random.randint(0,10, (batch_size))
+        # y = y[ torch.from_numpy(index) ]
+        # y = Variable( y.view(batch_size, 10, 1, 1) )
 
-        y_exp = Variable( torch.zeros(batch_size, 10, 28,28) ) + y
+        # y_exp = Variable( torch.zeros(batch_size, 10, 28,28) ) + y
 
 
-        if torch.cuda.is_available():
-            z = z.cuda()
-            y = y.cuda()
-            y_exp = y_exp.cuda()
+        # if torch.cuda.is_available():
+        #     z = z.cuda()
+        #     y = y.cuda()
+        #     y_exp = y_exp.cuda()
 
         fake = gnet(z, y)
         d_fake = dnet(fake, y_exp)
 
         if torch.cuda.is_available():
 
-            g_loss = crit(d_fake, Variable( torch.ones(batch_size,1).float().cuda() ))
+            g_loss = crit(d_fake, Variable( torch.ones(batch_size,1).float().cuda() )) + l1loss(fake, x)
 
         else:
 
