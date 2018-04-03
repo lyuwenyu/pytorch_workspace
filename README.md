@@ -11,3 +11,9 @@ reference:
 reference:  
 [Conditional Generative Adversarial Nets](https://arxiv.org/pdf/1411.1784.pdf)  
 [DCGAN](https://arxiv.org/abs/1511.06434)
+
+
+### pixel2pixel
+reference:
+[Image-to-Image Translation with Conditional Adversarial Networks](https://arxiv.org/pdf/1611.07004v1.pdf)
+[pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
