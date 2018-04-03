@@ -66,8 +66,8 @@ for e in range(100):
             d_real = dnet(x, y_exp)
             
             fake = gnet(z, y)
-            fake.detach()
-            d_fake = dnet(fake, y_exp)
+            # fake.detach()
+            d_fake = dnet(fake.detach(), y_exp)
 
             if torch.cuda.is_available():
                 d_loss = crit(d_real, Variable( torch.ones(batch_size,1).float().cuda() ) )  + \
@@ -99,7 +99,7 @@ for e in range(100):
         #     y = y.cuda()
         #     y_exp = y_exp.cuda()
 
-        fake = gnet(z, y)
+        # fake = gnet(z, y)
         d_fake = dnet(fake, y_exp)
 
         if torch.cuda.is_available():
