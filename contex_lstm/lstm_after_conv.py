@@ -44,8 +44,8 @@ class lstm_layer(nn.Module):
             for n, p in m.named_parameters():
 
                 if 'weight' in n:
-                    init.xavier_normal(p.data)
-
+                    # init.xavier_normal(p.data)
+                    init.orthogonal(p.data)
                 elif 'bias' in n:
                     p.data.zero_()
 
