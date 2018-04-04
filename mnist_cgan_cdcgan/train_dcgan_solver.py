@@ -9,7 +9,7 @@ from data.dataset import MNIST
 import torchvision.utils as vutils
 from collections import OrderedDict
 import logging
-
+from util.cfgs import opts
 
 
 class Solver(object):
@@ -50,14 +50,19 @@ class Solver(object):
 		print(self.d)
 
 		## logging
-		file_handler = logging.FileHandler('./log.txt')
+
+		self.set_logger()
+
+
+
+	def set_logger(self, ):
+		
+		file_handler = logging.FileHandler( opts.log_file )
 		fmat = logging.Formatter('%(name)s %(asctime)s %(levelname)-4s: %(message)s')
 		file_handler.setFormatter(fmat)
 		self.logger = logging.getLogger('solver')
 		self.logger.addHandler(file_handler)
 		self.logger.setLevel(logging.INFO)
-
-
 
 
 	def set_input(self, x, y, z):
