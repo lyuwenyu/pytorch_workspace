@@ -44,10 +44,13 @@ class generator(nn.Module):
         self.fc1 = nn.Linear(z_size+y_size, 3*3*512)
         self.new_deconv1 = nn.ConvTranspose2d(512, 256, kernel_size=7, stride=2)
         self.new_bn1 = nn.BatchNorm2d(256)
+        self.new_gn1 = group_normalization(256, 16)
         self.new_deconv2 = nn.ConvTranspose2d(256, 128, kernel_size=5, stride=2)
         self.new_bn2 = nn.BatchNorm2d(128)
+        self.new_gn2 = group_normalization(128, 8)
         self.new_deconv3 = nn.ConvTranspose2d(128, 64, kernel_size=3, stride=1)
         self.new_bn3 = nn.BatchNorm2d(64)
+        self.new_gn3 = group_normalization(64, 4)
         self.new_deconv4 = nn.ConvTranspose2d(64, 1, kernel_size=3, stride=1)
 
 
@@ -73,9 +76,9 @@ class generator(nn.Module):
         out = torch.squeeze(out)
         out = self.fc1(out)
         out = out.view(out.size()[0], 512, 3, 3)
-        out = F.leaky_relu( self.new_bn1( self.new_deconv1(out) ), negative_slope=0.2 )
-        out = F.leaky_relu( self.new_bn2( self.new_deconv2(out) ), negative_slope=0.2 )
-        out = F.leaky_relu( self.new_bn3( self.new_deconv3(out) ), negative_slope=0.2 )
+        out = F.leaky_relu( self.new_gn1( self.new_deconv1(out) ), negative_slope=0.2 )
+        out = F.leaky_relu( self.new_gn2( self.new_deconv2(out) ), negative_slope=0.2 )
+        out = F.leaky_relu( self.new_gn3( self.new_deconv3(out) ), negative_slope=0.2 )
         out = self.new_deconv4(out)
         out = F.tanh(out)
         return out[:,:,1:,1:]
@@ -90,11 +93,11 @@ class discriminator(nn.Module):
 
         self.conv1 = nn.Conv2d(11, 64, kernel_size=5, stride=2)
         self.bn1 = nn.BatchNorm2d(64)
-        self.gn1 = group_normalization(64, 2)
+        self.gn1 = group_normalization(64, 4)
 
         self.conv2 = nn.Conv2d(64, 128, kernel_size=5, stride=2)
         self.bn2 = nn.BatchNorm2d(128)
-        self.gn2 = group_normalization(128, 4)
+        self.gn2 = group_normalization(128, 8)
 
         self.fc = nn.Linear(2048, 1)
 
@@ -104,8 +107,8 @@ class discriminator(nn.Module):
 
         out = torch.cat([x, y], dim=1)
 
-        out = F.leaky_relu( self.bn1( self.conv1(out) ), negative_slope=0.2 )
-        out = F.leaky_relu( self.bn2( self.conv2(out) ), negative_slope=0.2 )
+        out = F.leaky_relu( self.gn1( self.conv1(out) ), negative_slope=0.2 )
+        out = F.leaky_relu( self.gn2( self.conv2(out) ), negative_slope=0.2 )
 
         out = self.fc(out.view(-1, 2048))
 

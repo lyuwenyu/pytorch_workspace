@@ -11,6 +11,7 @@ from collections import OrderedDict
 import logging
 from util.cfgs import opts
 
+from multiprocessing import Queue 
 
 class Solver(object):
 
@@ -49,10 +50,17 @@ class Solver(object):
 		print(self.g)
 		print(self.d)
 
-		## logging
 
+		## buffer
+		self.buffer = Queue(20)
+		
+
+		## logging
 		self.set_logger()
 
+
+		## others
+		self.step = 0
 
 
 	def set_logger(self, ):
@@ -86,7 +94,8 @@ class Solver(object):
 	def forward(self):
 
 		self.fake = self.g(self.z, self.y)
-		
+		self.buffer.put([self.fake, self.y_exp])
+
 
 	def backward_d(self):
 		
@@ -101,6 +110,7 @@ class Solver(object):
 	def backward_g(self):
 		
 		d_fake = self.d(self.fake, self.y_exp)
+		# self.fake, self.y_exp = self.buffer.get()
 
 		self.lossg = self.crit( d_fake, Variable( d_fake.data.new(*d_fake.size()).fill_(1.).cuda() ) ) + self.l1loss(self.fake, self.x)
 
@@ -122,6 +132,7 @@ class Solver(object):
 		self.backward_g()
 		self.g_optim.step()
 
+		self.step += 1
 
 	def get_current_errors(self):
 
@@ -132,8 +143,21 @@ class Solver(object):
 		return errors
 
 
-	def test(self, z, y):
+	def test(self, z=None, y=None):
 		
+		def set_input(z, y):
+			pass
+			return z, y
+
+		if (z is None) or (y is None):
+						
+			z = Variable( ((torch.randn(100, 100, 1, 1)-0.5)/0.5).cuda() )
+			y = Variable( torch.cat([torch.eye(10,10)]*10, dim=0).view(100, 10, 1, 1).cuda())
+
+		else:
+
+			z, y = set_input(z, y)
+
 		self.g.eval()
 		
 		return self.g(z, y)
@@ -184,8 +208,8 @@ if __name__ == '__main__':
 
 				print( solver.get_current_errors() )
 				vutils.save_image( solver.fake.cpu().data , './output/gn_dcgan_{:0>3}.jpg'.format(e), nrow=10)
-				
-
+			
+				vutils.save_image( solver.test().cpu().data , './output/gn_dcgan_{:0>3}_test.jpg'.format(e), nrow=10)
 
 		solver.update_lr()
 
