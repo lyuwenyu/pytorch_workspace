@@ -8,7 +8,7 @@ import numpy as np
 from data.dataset import MNIST
 import torchvision.utils as vutils
 from collections import OrderedDict
-
+import logging
 
 
 
@@ -48,6 +48,16 @@ class Solver(object):
 
 		print(self.g)
 		print(self.d)
+
+		## logging
+		file_handler = logging.FileHandler('./log.txt')
+		fmat = logging.Formatter('%(name)s %(asctime)s %(levelname)-4s: %(message)s')
+		file_handler.setFormatter(fmat)
+		self.logger = logging.getLogger('solver')
+		self.logger.addHandler(file_handler)
+		self.logger.setLevel(logging.INFO)
+
+
 
 
 	def set_input(self, x, y, z):
@@ -112,6 +122,8 @@ class Solver(object):
 
 		errors = OrderedDict([('d_loss', self.lossd.cpu().data.numpy()[0]), ('g_loss', self.lossg.cpu().data.numpy()[0])])
 		
+		self.logger.info(errors)
+
 		return errors
 
 
@@ -121,9 +133,6 @@ class Solver(object):
 		
 		return self.g(z, y)
 
-
-	def save(self, output_dir = ''):
-		pass
 
 
 	def update_lr(self):
@@ -135,6 +144,11 @@ class Solver(object):
 		print('g net lr: {}'.format(self.g_optim.param_groups[0]['lr']))
 
 
+	def save(self, output_dir = '', name=''):
+		
+		torch.save( self.g.state_dict(), output_dir+'/g_{}'.format(name) )
+
+		
 
 
 if __name__ == '__main__':
