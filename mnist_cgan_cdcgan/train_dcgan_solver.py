@@ -14,6 +14,7 @@ from util.cfgs import opts
 import os
 from multiprocessing import Queue 
 
+import copy
 import pickle
 
 try:
@@ -25,16 +26,29 @@ except:
 class Solver(object):
 
 
-	def __init__(self, batch_size=10, use_cuda=True):
+	def __init__(self, batch_size=10, use_cuda=True, restore=False):
 
 		## params
 		self.use_cuda = use_cuda
 		self.batch_size = batch_size
 
 
+		self.states = copy.deepcopy(opts)
+
+		# self.states = OrderedDict()
+		# self.states['step'] = self.step
+		# self.states['lr'] = self.lr
+
+
 		## modules
 		self.g = model_dcgan.generator()
 		self.d = model_dcgan.discriminator()
+
+
+		if restore:
+
+			self.restore()
+
 
 		if use_cuda:
 			self.g = self.g.cuda()
@@ -42,9 +56,8 @@ class Solver(object):
 
 
 		## optimizer
-		self.lr = 0.0002
-		self.g_optim = optim.Adam(self.g.parameters(), lr=self.lr, betas=(0.5, 0.99))
-		self.d_optim = optim.Adam(self.d.parameters(), lr=self.lr, betas=(0.5, 0.99))
+		self.g_optim = optim.Adam(self.g.parameters(), lr=self.states.lr, betas=(0.5, 0.99))
+		self.d_optim = optim.Adam(self.d.parameters(), lr=self.states.lr, betas=(0.5, 0.99))
 
 
 		## criteria
@@ -68,9 +81,6 @@ class Solver(object):
 		## logging
 		self.set_logger()
 
-
-		## others
-		self.step = 0
 
 
 		## tensorboardX
@@ -110,7 +120,7 @@ class Solver(object):
 		self.z = Variable(z)
 		self.y_exp = Variable( torch.zeros(self.batch_size, 10, 28,28) ) + self.y
 
-		if self.use_cuda:
+		if self.states.use_cuda:
 
 			self.x = Variable(x.cuda())
 			self.y = Variable(y.cuda())
@@ -162,7 +172,7 @@ class Solver(object):
 		self.backward_g()
 		self.g_optim.step()
 
-		self.step += 1
+		self.states.step += 1
 
 
 
@@ -205,7 +215,9 @@ class Solver(object):
 
 		self.d_lr = self.d_optim.param_groups[0]['lr']
 		self.g_lr = self.g_optim.param_groups[0]['lr']
-		self.lr = [self.d_lr, self.g_lr]
+		
+		# self.lr = [self.d_lr, self.g_lr]
+		self.states.lr = self.d_lr
 
 		print('d net lr: {}'.format(self.d_optim.param_groups[0]['lr']))
 		print('g net lr: {}'.format(self.g_optim.param_groups[0]['lr']))
@@ -214,10 +226,12 @@ class Solver(object):
 
 	def save(self, output_dir = '.', name='x'):
 		
-		torch.save( self.g.state_dict(), output_dir+'/g_{}.pt'.format(name) )
+		# in case of OUT OF MEM
+		torch.save( self.g.cup().state_dict(), output_dir+'/g_{}.pt'.format(name) )
+		self.g.cuda()
 
 		with open(os.path.join(output_dir, 'state.pkl'), 'wb') as f:
-			pickle.dump([self.step, self.lrs], f)
+			pickle.dump(self.states, f)
 
 		print('save done...')
 
@@ -225,8 +239,13 @@ class Solver(object):
 
 	def restore(self, dir_name='.'):
 
-		pass
+		## states
+		with open(dir_name, 'rb') as f:
 
+			self.states = pickle.load( f ) 
+
+		## parameter
+		torch.load('')
 
 
 
