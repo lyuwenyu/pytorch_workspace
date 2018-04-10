@@ -33,11 +33,11 @@ class Solver(object):
 		self.batch_size = batch_size
 
 
-		self.states = copy.deepcopy(opts)
+		self.state = copy.deepcopy(opts)
 
-		# self.states = OrderedDict()
-		# self.states['step'] = self.step
-		# self.states['lr'] = self.lr
+		# self.state = OrderedDict()
+		# self.state['step'] = self.step
+		# self.state['lr'] = self.lr
 
 
 		## modules
@@ -56,8 +56,8 @@ class Solver(object):
 
 
 		## optimizer
-		self.g_optim = optim.Adam(self.g.parameters(), lr=self.states.lr, betas=(0.5, 0.99))
-		self.d_optim = optim.Adam(self.d.parameters(), lr=self.states.lr, betas=(0.5, 0.99))
+		self.g_optim = optim.Adam(self.g.parameters(), lr=self.state.lr, betas=(0.5, 0.99))
+		self.d_optim = optim.Adam(self.d.parameters(), lr=self.state.lr, betas=(0.5, 0.99))
 
 
 		## criteria
@@ -120,7 +120,7 @@ class Solver(object):
 		self.z = Variable(z)
 		self.y_exp = Variable( torch.zeros(self.batch_size, 10, 28,28) ) + self.y
 
-		if self.states.use_cuda:
+		if self.state.use_cuda:
 
 			self.x = Variable(x.cuda())
 			self.y = Variable(y.cuda())
@@ -172,7 +172,7 @@ class Solver(object):
 		self.backward_g()
 		self.g_optim.step()
 
-		self.states.step += 1
+		self.state.step += 1
 
 
 
@@ -217,7 +217,7 @@ class Solver(object):
 		self.g_lr = self.g_optim.param_groups[0]['lr']
 		
 		# self.lr = [self.d_lr, self.g_lr]
-		self.states.lr = self.d_lr
+		self.state.lr = self.d_lr
 
 		print('d net lr: {}'.format(self.d_optim.param_groups[0]['lr']))
 		print('g net lr: {}'.format(self.g_optim.param_groups[0]['lr']))
@@ -227,11 +227,11 @@ class Solver(object):
 	def save(self, output_dir = '.', name='x'):
 		
 		# in case of OUT OF MEM
-		torch.save( self.g.cup().state_dict(), output_dir+'/g_{}.pt'.format(name) )
+		torch.save( self.g.cpu().state_dict(), output_dir+'/g_{}.pt'.format(name) )
 		self.g.cuda()
 
 		with open(os.path.join(output_dir, 'state.pkl'), 'wb') as f:
-			pickle.dump(self.states, f)
+			pickle.dump(self.state, f)
 
 		print('save done...')
 
@@ -239,10 +239,10 @@ class Solver(object):
 
 	def restore(self, dir_name='.'):
 
-		## states
+		## state
 		with open(dir_name, 'rb') as f:
 
-			self.states = pickle.load( f ) 
+			self.state = pickle.load( f ) 
 
 		## parameter
 		torch.load('')
