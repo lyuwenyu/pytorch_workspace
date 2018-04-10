@@ -13,6 +13,12 @@ from util.cfgs import opts
 
 from multiprocessing import Queue 
 
+try:
+	from tensorboardX import SummaryWriter
+except:
+	raise RuntimeError('no tensorboardX')
+
+
 class Solver(object):
 
 
@@ -63,6 +69,26 @@ class Solver(object):
 		self.step = 0
 
 
+		## tensorboardX
+
+		self.set_summary()
+
+
+		
+	def set_summary(self, ):
+		
+		writer = SummaryWriter()
+		try:
+			dummy_data = Variable(torch.randn(1, 3, 224, 224))
+			torch.onnx.export(self.model, dummy_data, 'model.proto', verbose=True)
+			writer.add_graph_onnx('model.proto')
+
+		except ImportError:
+			pass
+
+		self.writer = writer
+
+
 	def set_logger(self, ):
 		
 		file_handler = logging.FileHandler( opts.log_file )
@@ -75,14 +101,14 @@ class Solver(object):
 
 	def set_input(self, x, y, z):
 
-		self.x = Variable(x)
+		self.x = Variable(x)update_lr
 		self.y = Variable(y)
 		self.z = Variable(z)
 		self.y_exp = Variable( torch.zeros(self.batch_size, 10, 28,28) ) + self.y
 
 		if self.use_cuda:
 
-			self.x = Variable(x.cuda())
+			self.x = Variaupdate_lrble(x.cuda())
 			self.y = Variable(y.cuda())
 			self.z = Variable(z.cuda())
 			self.y_exp = Variable( torch.zeros(self.batch_size, 10, 28,28).cuda() ) + self.y
@@ -130,7 +156,7 @@ class Solver(object):
 
 		self.g_optim.zero_grad()
 		self.backward_g()
-		self.g_optim.step()
+		self.g_optim.update_lrstep()
 
 		self.step += 1
 
