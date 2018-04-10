@@ -11,7 +11,10 @@ from collections import OrderedDict
 import logging
 from util.cfgs import opts
 
+import os
 from multiprocessing import Queue 
+
+import pickle
 
 try:
 	from tensorboardX import SummaryWriter
@@ -39,8 +42,9 @@ class Solver(object):
 
 
 		## optimizer
-		self.g_optim = optim.Adam(self.g.parameters(), lr=0.0002, betas=(0.5, 0.99))
-		self.d_optim = optim.Adam(self.d.parameters(), lr=0.0002, betas=(0.5, 0.99))
+		self.lr = 0.0002
+		self.g_optim = optim.Adam(self.g.parameters(), lr=self.lr, betas=(0.5, 0.99))
+		self.d_optim = optim.Adam(self.d.parameters(), lr=self.lr, betas=(0.5, 0.99))
 
 
 		## criteria
@@ -58,7 +62,7 @@ class Solver(object):
 
 
 		## buffer
-		self.buffer = Queue(20)
+		# self.buffer = Queue(20)
 		
 
 		## logging
@@ -71,10 +75,10 @@ class Solver(object):
 
 		## tensorboardX
 
-		self.set_summary()
+		# self.set_summary()
 
 
-		
+
 	def set_summary(self, ):
 		
 		writer = SummaryWriter()
@@ -101,14 +105,14 @@ class Solver(object):
 
 	def set_input(self, x, y, z):
 
-		self.x = Variable(x)update_lr
+		self.x = Variable(x)
 		self.y = Variable(y)
 		self.z = Variable(z)
 		self.y_exp = Variable( torch.zeros(self.batch_size, 10, 28,28) ) + self.y
 
 		if self.use_cuda:
 
-			self.x = Variaupdate_lrble(x.cuda())
+			self.x = Variable(x.cuda())
 			self.y = Variable(y.cuda())
 			self.z = Variable(z.cuda())
 			self.y_exp = Variable( torch.zeros(self.batch_size, 10, 28,28).cuda() ) + self.y
@@ -120,7 +124,7 @@ class Solver(object):
 	def forward(self):
 
 		self.fake = self.g(self.z, self.y)
-		self.buffer.put([self.fake, self.y_exp])
+		# self.buffer.put([self.fake, self.y_exp])
 
 
 	def backward_d(self):
@@ -156,9 +160,11 @@ class Solver(object):
 
 		self.g_optim.zero_grad()
 		self.backward_g()
-		self.g_optim.update_lrstep()
+		self.g_optim.step()
 
 		self.step += 1
+
+
 
 	def get_current_errors(self):
 
@@ -167,6 +173,8 @@ class Solver(object):
 		self.logger.info(errors)
 
 		return errors
+
+
 
 
 	def test(self, z=None, y=None):
@@ -195,15 +203,31 @@ class Solver(object):
 		self.scheduler_d.step()
 		self.scheduler_g.step()
 
+		self.d_lr = self.d_optim.param_groups[0]['lr']
+		self.g_lr = self.g_optim.param_groups[0]['lr']
+		self.lr = [self.d_lr, self.g_lr]
+
 		print('d net lr: {}'.format(self.d_optim.param_groups[0]['lr']))
 		print('g net lr: {}'.format(self.g_optim.param_groups[0]['lr']))
 
 
-	def save(self, output_dir = '', name=''):
-		
-		torch.save( self.g.state_dict(), output_dir+'/g_{}'.format(name) )
 
+	def save(self, output_dir = '.', name='x'):
 		
+		torch.save( self.g.state_dict(), output_dir+'/g_{}.pt'.format(name) )
+
+		with open(os.path.join(output_dir, 'state.pkl'), 'wb') as f:
+			pickle.dump([self.step, self.lrs], f)
+
+		print('save done...')
+
+
+
+	def restore(self, dir_name='.'):
+
+		pass
+
+
 
 
 if __name__ == '__main__':
@@ -229,7 +253,6 @@ if __name__ == '__main__':
 			solver.optimizer_step()
 
 
-
 			if i%20 == 0:
 
 				print( solver.get_current_errors() )
@@ -239,5 +262,5 @@ if __name__ == '__main__':
 
 		solver.update_lr()
 
-
+		solver.save()
 		
