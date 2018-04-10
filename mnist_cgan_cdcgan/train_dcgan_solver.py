@@ -216,7 +216,7 @@ class Solver(object):
 		self.d_lr = self.d_optim.param_groups[0]['lr']
 		self.g_lr = self.g_optim.param_groups[0]['lr']
 		
-		# self.lr = [self.d_lr, self.g_lr]
+		# self.lr = [self.d_lr, self.g_lr] 
 		self.state.lr = self.d_lr
 
 		print('d net lr: {}'.format(self.d_optim.param_groups[0]['lr']))
