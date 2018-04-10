@@ -13,7 +13,8 @@ class gram_matrix(nn.Module):
     
     def __init__(self,):
         super(gram_matrix, self).__init__()
-
+        
+        pass
 
 
     def forward(self, x):
@@ -23,7 +24,7 @@ class gram_matrix(nn.Module):
         x = x.view(n, c, -1)
         x_t = x.permute(0, 2, 1)
         
-        return x.bmm( x_t) / (c * h * w)
+        return x.bmm(x_t) / (c * h * w)
 
 
 
