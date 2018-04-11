@@ -92,6 +92,8 @@ class AttentionModel(nn.Module):
 
             outs += [out]
 
+            print(out.size())
+            
         return outs
 
 
