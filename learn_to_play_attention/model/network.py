@@ -31,9 +31,9 @@ class AttentionModel(nn.Module):
 
     def forward(self, x):
         
-        feas = []
-        g = None
-
+        feas = [] # local features
+        g = None  # global features
+        
         for i, (n, m) in enumerate(self.model.named_children()):
 
             if n in [ 'layer{}'.format(l) for l in self.L ]:
@@ -73,7 +73,7 @@ class AttentionModel(nn.Module):
         return logits
 
 
-    def _c(self, vs1, v2):
+    def _c(self, vs1, v2, mode='dot'):
         
 
         if not isinstance(vs1, list):
@@ -82,18 +82,24 @@ class AttentionModel(nn.Module):
 
         outs = []
 
-        for v1 in vs1:
+        if mode == 'dot':
 
-            b, n, c = v1.size()
+            for v1 in vs1:
 
-            v_tmp = v2.view(b, 1, c) + torch.zeros_like(v1)
+                b, n, c = v1.size()
 
-            out = torch.bmm(v_tmp.view(b*n, 1, c), v1.view(b*n, c, 1)).view(b, n)
+                v_tmp = v2.view(b, 1, c) + torch.zeros_like(v1)
 
-            outs += [out]
+                out = torch.bmm(v_tmp.view(b*n, 1, c), v1.view(b*n, c, 1)).view(b, n)
 
-            print(out.size())
-            
+                outs += [out]
+
+                print(out.size())
+
+        else:
+            pass
+
+
         return outs
 
 
