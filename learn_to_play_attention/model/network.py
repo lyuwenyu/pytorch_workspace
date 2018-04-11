@@ -18,6 +18,7 @@ class AttentionModel(nn.Module):
         # 
         self.model = models.resnet101(pretrained=True)
         self.model.avgpool = nn.AdaptiveAvgPool2d(1)
+        # self.model.avgpool = nn.AdaptiveMaxPool2d(1)
         self.model.fc = nn.Linear(2048, 2048)
         
         self.linear_map = nn.ModuleList( [nn.Linear(256, 2048), nn.Linear(512, 2048), nn.Linear(1024, 2048), nn.Linear(2048, 2048) ] )
@@ -49,7 +50,12 @@ class AttentionModel(nn.Module):
 
                 n, c, _, _ = x.size()
                 g = m(x.view(n, c))
-                
+
+            # elif n == 'avgpool':
+
+            #     n, c, _, _ = x.size()
+            #     g = m(x).view(n, c)
+            
             else:
 
                 x = m(x)
