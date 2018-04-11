@@ -34,7 +34,6 @@ class AttentionModel(nn.Module):
         feas = []
         g = None
 
-
         for i, (n, m) in enumerate(self.model.named_children()):
 
             if n in [ 'layer{}'.format(l) for l in self.L ]:
