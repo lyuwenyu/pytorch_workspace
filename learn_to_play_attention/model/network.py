@@ -64,7 +64,7 @@ class AttentionModel(nn.Module):
         a_s = [ F.softmax(a, dim=1) for a in self._c(feas, g) ]
 
         gas = [ a.view(*a.size(), 1)*f for (a, f) in zip(a_s, feas)]
-        gas = [ torch.sum(g_, dim=1) for g_ in gas]
+        gas = [ torch.mean(g_, dim=1) for g_ in gas] # sum
 
         if self.concat_feas:
 
@@ -74,7 +74,7 @@ class AttentionModel(nn.Module):
         else:
 
             logits = [ m_(x_) for x_, m_ in zip(feas, self.fc_cls)] 
-            
+            logits = logits.cat(logits).sum(dim=0)
             
         return logits
 
