@@ -72,10 +72,10 @@ class AttentionModel(nn.Module):
             logits = self.fc_cls(feas)
         
         else:
-
-            logits = [ m_(x_) for x_, m_ in zip(feas, self.fc_cls)] 
-            logits = logits.cat(logits).sum(dim=0)
             
+            logits = [ m_(x_).view(1, -1,  4) for x_, m_ in zip(gas, self.fc_cls)]     
+            logits = torch.cat(logits).mean(dim=0)
+
         return logits
 
 
