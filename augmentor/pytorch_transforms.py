@@ -49,7 +49,7 @@ class DatasetX(data.Dataset):
         
         img = Image.open(self.lines[i]).convert('RGB')
 
-        imgs = [ img ]
+        imgs = [ img ]  ## image in LIST will be transformed in the same way, e.g. image mask
 
         if self.is_training:
             
