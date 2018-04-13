@@ -1,6 +1,7 @@
 from torchvision import transforms
 import torchvision.transforms.functional as transformsF
 import torch.utils.data as data 
+import torchvision.utils as vutils
 
 import Augmentor
 import glob 
@@ -29,8 +30,14 @@ class DatasetX(data.Dataset):
 
             self.p = self._augmentor()
             # self.p.sample(50)
-
             # self.transforms = transforms.Compose([ self.p.torch_transform(), transforms.ToTensor() ])
+
+        else:
+
+            self.t = transforms.Compose([   transforms.RandomHorizontalFlip(),
+                                            transforms.RandomRotation(10),
+                                            transforms.RandomResizedCrop(256) ])
+
 
 
         self.preprocess = transforms.Compose([  transforms.Resize(size=[224,224]),
@@ -49,26 +56,35 @@ class DatasetX(data.Dataset):
         
         img = Image.open(self.lines[i]).convert('RGB')
 
-        imgs = [ img ]  ## image in LIST will be transformed in the same way, e.g. image mask
+        imgs = [ img, img ]  ## image in LIST will be transformed in the same way, e.g. image mask
 
         if self.is_training:
             
+
+            _imgs = []
+            _seed = random.randint(0, 10000000)
+
             if self.use_augmentor:
                 
-                _imgs = []
-                _seed = random.randint(0, 10000000)
-
                 for x in imgs:
 
-                    self.p.set_seed( _seed )
-                    # random.seed(_seed)
+                    # self.p.set_seed( _seed )
+                    random.seed(_seed)
                     _imgs += [ Image.fromarray(self.p._execute_with_array(np.array(x))) ]
 
-                imgs = _imgs
+                
 
             else:
 
-                imgs = self._transforms(imgs)
+                # _imgs = self._transforms_func(imgs)
+
+                ### NOT WORK WELL BELOW
+                for x in imgs:
+                    random.seed(_seed)
+                    _imgs += [ self.t(x) ]
+
+
+            imgs = _imgs
 
 
         imgs = [ self.preprocess(x) for x in imgs ]
@@ -87,12 +103,12 @@ class DatasetX(data.Dataset):
         p.flip_left_right(probability=0.5)
         p.rotate(probability=0.5, max_left_rotation=10, max_right_rotation=10)
         p.shear(probability=0.4, max_shear_left=10, max_shear_right=10)
-        p.random_distortion(probability=0.3, grid_height=10, grid_width=10, magnitude=2)
+        p.random_distortion(probability=0.3, grid_height=5, grid_width=5, magnitude=2)
 
         return p
 
 
-    def _transforms(self, images=[]):
+    def _transforms_func(self, images=[]):
         
         if not isinstance(images, list):
 
@@ -111,15 +127,18 @@ class DatasetX(data.Dataset):
         return images
 
 
+
 if __name__ == '__main__':
 
 
-    dataset = DatasetX()
+    dataset = DatasetX(use_augmentor=False)
 
     
     dataset_loader = data.DataLoader(dataset, batch_size=10, num_workers=5) 
 
-    for d in dataset_loader:
+    for i, d in enumerate(dataset_loader):
 
-        print(len(d), d[0].size())
+        print(len(d), d[0].size(), d[1].size())
 
+        vutils.save_image(d[0], './d0_{}.jpg'.format(i), nrow=5, normalize=True)
+        vutils.save_image(d[1], './d1_{}.jpg'.format(i), nrow=5, normalize=True)
