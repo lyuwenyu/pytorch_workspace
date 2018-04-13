@@ -1,10 +1,13 @@
 from torchvision import transforms
+import torchvision.transforms.functional as transformsF
 import torch.utils.data as data 
+
 import Augmentor
 import glob 
 from PIL import Image
 import numpy as np 
 
+import functools
 
 class DatasetX(data.Dataset):
 
@@ -17,11 +20,16 @@ class DatasetX(data.Dataset):
 
         self.imgs = glob.glob(path + '/**/**/*.png')
 
+        # self.p = Augmentor.Pipeline()
 
         if use_augmentor:
 
             self.p = self._augmentor()
-            self.transforms = transforms.Compose([ self.p.torch_transform(), transforms.ToTensor() ])
+            # self.transforms = transforms.Compose([ self.p.torch_transform(), transforms.ToTensor() ])
+
+        
+        self.pre_process = transforms.Compose([ transforms.ToTensor(), 
+                                                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),])
 
 
     def __len__(self):
@@ -35,19 +43,18 @@ class DatasetX(data.Dataset):
         
         img = Image.open(self.imgs[i]).convert('RGB')
 
-
         if self.is_training:
             
             # im = self.transforms(img)
-            im = self.p._execute_with_array( np.array(img) )
             
-                        
-        else:
+            # im = self.p._execute_with_array( np.array(img) )
 
-            pass
+            img = self._transforms([img])
+            
+            
+        ims = [self.pre_process(x) for x in img]
 
-
-        return im
+        return np.array(ims[0])
 
 
 
@@ -60,6 +67,23 @@ class DatasetX(data.Dataset):
         return p
 
 
+    def _transforms(self, images=[]):
+        
+        if not isinstance(images, list):
+            raise RuntimeError
+
+        params = transforms.RandomCrop.get_params(images[0], output_size=[224, 224]) ## get parameters
+        # image = transformsF.crop(image, *params)
+        # mask = transformsF.crop(mask, *params)
+        # return image, mask
+
+        # images = list( map(transformsF.crop, params) )
+
+
+        images = [ transformsF.crop(im, *params) for im in images ]
+
+        
+        return images
 
 
 if __name__ == '__main__':
