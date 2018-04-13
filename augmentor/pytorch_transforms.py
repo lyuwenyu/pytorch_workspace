@@ -56,11 +56,12 @@ class DatasetX(data.Dataset):
             if self.use_augmentor:
                 
                 _imgs = []
-                _seed = random.randint(0, 100000)
+                _seed = random.randint(0, 10000000)
 
                 for x in imgs:
 
                     self.p.set_seed( _seed )
+                    # random.seed(_seed)
                     _imgs += [ Image.fromarray(self.p._execute_with_array(np.array(x))) ]
 
                 imgs = _imgs
