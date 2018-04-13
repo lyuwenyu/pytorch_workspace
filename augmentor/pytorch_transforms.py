@@ -8,6 +8,9 @@ from PIL import Image
 import numpy as np 
 
 import functools
+import random
+
+
 
 class DatasetX(data.Dataset):
 
@@ -27,7 +30,7 @@ class DatasetX(data.Dataset):
             self.p = self._augmentor()
             # self.transforms = transforms.Compose([ self.p.torch_transform(), transforms.ToTensor() ])
 
-        
+
         self.pre_process = transforms.Compose([ transforms.ToTensor(), 
                                                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),])
 
@@ -54,7 +57,7 @@ class DatasetX(data.Dataset):
             
         ims = [self.pre_process(x) for x in img]
 
-        return np.array(ims[0])
+        return ims
 
 
 
@@ -79,10 +82,12 @@ class DatasetX(data.Dataset):
 
         # images = list( map(transformsF.crop, params) )
 
-
         images = [ transformsF.crop(im, *params) for im in images ]
 
-        
+        if random.random()> 0.5:
+            images = [ transformsF.hflip(im) for im in images]
+
+
         return images
 
 
@@ -96,5 +101,5 @@ if __name__ == '__main__':
 
     for d in dataset_loader:
 
-        print(d.size())
+        print(len(d), d[0].size())
 
