@@ -76,12 +76,6 @@ class DatasetX(data.Dataset):
             raise RuntimeError
 
         params = transforms.RandomCrop.get_params(images[0], output_size=[224, 224]) ## get parameters
-        # image = transformsF.crop(image, *params)
-        # mask = transformsF.crop(mask, *params)
-        # return image, mask
-
-        # images = list( map(transformsF.crop, params) )
-
         images = [ transformsF.crop(im, *params) for im in images ]
 
         if random.random()> 0.5:
