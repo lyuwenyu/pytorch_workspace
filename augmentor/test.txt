@@ -1,5 +1,0 @@
-<<<<<<< HEAD
-master test
-=======
-# test1
->>>>>>> fea1
