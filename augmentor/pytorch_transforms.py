@@ -66,13 +66,15 @@ class DatasetX(data.Dataset):
 
             if self.use_augmentor:
                 
-                for x in imgs:
+                _imgs = self._sample_images(imgs, self.p)
 
-                    # self.p.set_seed( _seed )
-                    random.seed(_seed)
-                    # _imgs += [ Image.fromarray(self.p._execute_with_array(np.array(x))) ]
-                    _imgs += [self._sample_image(x, self.p)]
+                # for x in imgs:
+                #     # self.p.set_seed( _seed )
+                #     # random.seed(_seed)
+                #     # _imgs += [ Image.fromarray(self.p._execute_with_array(np.array(x))) ]
+                #     _imgs += [ self._sample_image(x, self.p, _seed) ]
 
+                
             else:
 
                 _imgs = self._transforms_func(imgs)
@@ -92,7 +94,7 @@ class DatasetX(data.Dataset):
         return imgs
 
 
-
+    ## using augmentor pipelines
     def _get_pipeline(self, path=None):
 
         p = Augmentor.Pipeline(path)
@@ -104,22 +106,25 @@ class DatasetX(data.Dataset):
         p.shear(probability=0.4, max_shear_left=10, max_shear_right=10)
         p.random_distortion(probability=0.3, grid_height=5, grid_width=5, magnitude=2)
 
-
-
         return p
 
 
-    def _sample_image(self, image, p):
+    def _sample_images(self, images, p, seed=-1):
+
+        if seed > -1 : p.set_seed( seed )
+
+        if not isinstance(images, list):
+            images = [images]
 
         for operation in p.operations:
             r = round(random.uniform(0, 1), 1)
             if r <= operation.probability:
-                image = operation.perform_operation(image)
+                images = operation.perform_operation(images)
 
-        return image
+        return images
 
 
-
+    ## using pytorchvision transforms
     def _transforms_func(self, images=[]):
         
         if not isinstance(images, list):
