@@ -1,4 +1,6 @@
 *.jpg
 *.pyc
-*DS_Store
-__py*
+*.pkl
+*log*
+*DS_Store*
+*__py*
