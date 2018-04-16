@@ -76,12 +76,12 @@ class DatasetX(data.Dataset):
 
             else:
 
-                # _imgs = self._transforms_func(imgs)
+                _imgs = self._transforms_func(imgs)
 
                 ### NOT WORK WELL BELOW
-                for x in imgs:
-                    random.seed(_seed)
-                    _imgs += [ self.t(x) ]
+                # for x in imgs:
+                #     random.seed(_seed)
+                #     _imgs += [ self.t(x) ]
 
 
             imgs = _imgs
@@ -98,7 +98,7 @@ class DatasetX(data.Dataset):
 
         p = Augmentor.Pipeline(path)
 
-        p.crop_random(probability=0.5, percentage_area=0.8)
+        p.crop_random(probability=0.5, percentage_area=0.7)
         p.resize(probability=1.0, width=512, height=512)
         p.flip_left_right(probability=0.5)
         p.rotate(probability=0.5, max_left_rotation=10, max_right_rotation=10)
@@ -131,7 +131,7 @@ class DatasetX(data.Dataset):
 if __name__ == '__main__':
 
 
-    dataset = DatasetX(use_augmentor=False)
+    dataset = DatasetX(use_augmentor=True)
 
     
     dataset_loader = data.DataLoader(dataset, batch_size=10, num_workers=5) 
