@@ -24,11 +24,11 @@ class DatasetX(data.Dataset):
 
         ## paths
         self.lines = glob.glob(path + '/**/**/*.png')
-
+        print(self.lines)
 
         if use_augmentor:
 
-            self.p = self._augmentor()
+            self.p = self._get_pipeline()
             # self.p.sample(50)
             # self.transforms = transforms.Compose([ self.p.torch_transform(), transforms.ToTensor() ])
 
@@ -70,9 +70,8 @@ class DatasetX(data.Dataset):
 
                     # self.p.set_seed( _seed )
                     random.seed(_seed)
-                    _imgs += [ Image.fromarray(self.p._execute_with_array(np.array(x))) ]
-
-                
+                    # _imgs += [ Image.fromarray(self.p._execute_with_array(np.array(x))) ]
+                    _imgs += [self._sample_image(x, self.p)]
 
             else:
 
@@ -94,7 +93,7 @@ class DatasetX(data.Dataset):
 
 
 
-    def _augmentor(self, path=None):
+    def _get_pipeline(self, path=None):
 
         p = Augmentor.Pipeline(path)
 
@@ -105,13 +104,25 @@ class DatasetX(data.Dataset):
         p.shear(probability=0.4, max_shear_left=10, max_shear_right=10)
         p.random_distortion(probability=0.3, grid_height=5, grid_width=5, magnitude=2)
 
+
+
         return p
+
+
+    def _sample_image(self, image, p):
+
+        for operation in p.operations:
+            r = round(random.uniform(0, 1), 1)
+            if r <= operation.probability:
+                image = operation.perform_operation(image)
+
+        return image
+
 
 
     def _transforms_func(self, images=[]):
         
         if not isinstance(images, list):
-
             images = [images]
 
         params = transforms.RandomCrop.get_params(images[0], output_size=[224, 224]) ## get parameters
@@ -120,11 +131,12 @@ class DatasetX(data.Dataset):
         params = transforms.RandomRotation.get_params((-15, 15))
         images = [ transformsF.rotate(im, params) for im in images ]
         
-        if random.random()> 0.5:
+        if random.random() > 0.5:
             images = [ transformsF.hflip(im) for im in images]
 
 
         return images
+
 
 
 
