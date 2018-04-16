@@ -84,13 +84,13 @@ class DatasetX(data.Dataset):
                 #     random.seed(_seed)
                 #     _imgs += [ self.t(x) ]
 
-            # imgs = _imgs
+            imgs = _imgs
         
         else: ## test phase
 
             pass
 
-        imgs = [ self.preprocess(x) for x in _imgs ]
+        imgs = [ self.preprocess(x) for x in imgs ]
 
         return imgs
 
