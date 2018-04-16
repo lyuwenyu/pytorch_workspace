@@ -1,3 +1,4 @@
+import torch
 from torchvision import transforms
 import torchvision.transforms.functional as transformsF
 import torch.utils.data as data 
@@ -12,6 +13,8 @@ import functools
 import random
 
 print(Augmentor.__version__)
+
+__all__ = ('DatasetX')
 
 class DatasetX(data.Dataset):
 
@@ -47,12 +50,10 @@ class DatasetX(data.Dataset):
 
     def __len__(self):
 
-
         return len(self.lines)
 
 
     def __getitem__(self, i):
-        
         
         img = Image.open(self.lines[i]).convert('RGB')
 
@@ -60,13 +61,12 @@ class DatasetX(data.Dataset):
 
         if self.is_training:
             
-
             _imgs = []
             _seed = random.randint(0, 10000000)
 
             if self.use_augmentor:
                 
-                _imgs = self._sample_images(imgs, self.p)
+                _imgs = self._sample_images_augmentor(imgs, self.p)
 
                 # for x in imgs:
                 #     # self.p.set_seed( _seed )
@@ -77,19 +77,20 @@ class DatasetX(data.Dataset):
                 
             else:
 
-                _imgs = self._transforms_func(imgs)
+                _imgs = self._sample_images_pytorchvision(imgs)
 
                 ### NOT WORK WELL BELOW
                 # for x in imgs:
                 #     random.seed(_seed)
                 #     _imgs += [ self.t(x) ]
 
+            # imgs = _imgs
+        
+        else: ## test phase
 
-            imgs = _imgs
+            pass
 
-
-        imgs = [ self.preprocess(x) for x in imgs ]
-
+        imgs = [ self.preprocess(x) for x in _imgs ]
 
         return imgs
 
@@ -109,7 +110,7 @@ class DatasetX(data.Dataset):
         return p
 
 
-    def _sample_images(self, images, p, seed=-1):
+    def _sample_images_augmentor(self, images, p, seed=-1):
 
         if seed > -1 : p.set_seed( seed )
 
@@ -125,7 +126,7 @@ class DatasetX(data.Dataset):
 
 
     ## using pytorchvision transforms
-    def _transforms_func(self, images=[]):
+    def _sample_images_pytorchvision(self, images=[]):
         
         if not isinstance(images, list):
             images = [images]
@@ -159,3 +160,6 @@ if __name__ == '__main__':
 
         vutils.save_image(d[0], './d0_{}.jpg'.format(i), nrow=5, normalize=True)
         vutils.save_image(d[1], './d1_{}.jpg'.format(i), nrow=5, normalize=True)
+
+
+
