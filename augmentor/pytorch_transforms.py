@@ -1,31 +1,30 @@
+import functools
+import random
+import glob
+
 import torch
 from torchvision import transforms
 import torchvision.transforms.functional as transformsF
-import torch.utils.data as data 
+import torch.utils.data as data
 import torchvision.utils as vutils
-
-import Augmentor
-import glob 
+import numpy as np
 from PIL import Image
-import numpy as np 
-
-import functools
-import random
+import Augmentor
 
 print(Augmentor.__version__)
 
 __all__ = ('DatasetX')
 
-class DatasetX(data.Dataset):
 
+class DatasetX(data.Dataset):
 
     def __init__(self, path='/home/wenyu/Desktop/test', use_augmentor=True, is_training=True):
 
-        ## params
+        # params
         self.use_augmentor = use_augmentor
         self.is_training = is_training
 
-        ## paths
+        # paths
         self.lines = glob.glob(path + '/**/**/*.png')
         print(self.lines)
 
@@ -37,35 +36,31 @@ class DatasetX(data.Dataset):
 
         else:
 
-            self.t = transforms.Compose([   transforms.RandomHorizontalFlip(),
-                                            transforms.RandomRotation(10),
-                                            transforms.RandomResizedCrop(256) ])
+            self.t = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                        transforms.RandomRotation(10),
+                                        transforms.RandomResizedCrop(256)])
 
-
-
-        self.preprocess = transforms.Compose([  transforms.Resize(size=[224,224]),
-                                                transforms.ToTensor(), 
-                                                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),])
-
+        self.preprocess = transforms.Compose([transforms.Resize(size=[224, 224]),
+                                             transforms.ToTensor(),
+                                             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
     def __len__(self):
 
         return len(self.lines)
 
-
     def __getitem__(self, i):
-        
+
         img = Image.open(self.lines[i]).convert('RGB')
 
-        imgs = [ img, img ]  ## image in LIST will be transformed in the same way, e.g. image mask
+        imgs = [img, img]  # image in LIST will be transformed in the same way, e.g. image mask
 
         if self.is_training:
-            
+
             _imgs = []
             _seed = random.randint(0, 10000000)
 
             if self.use_augmentor:
-                
+
                 _imgs = self._sample_images_augmentor(imgs, self.p)
 
                 # for x in imgs:
@@ -74,28 +69,26 @@ class DatasetX(data.Dataset):
                 #     # _imgs += [ Image.fromarray(self.p._execute_with_array(np.array(x))) ]
                 #     _imgs += [ self._sample_image(x, self.p, _seed) ]
 
-                
             else:
 
                 _imgs = self._sample_images_pytorchvision(imgs)
 
-                ### NOT WORK WELL BELOW
+                # NOT WORK WELL BELOW
                 # for x in imgs:
                 #     random.seed(_seed)
                 #     _imgs += [ self.t(x) ]
 
             imgs = _imgs
-        
-        else: ## test phase
+
+        else:  # test phase
 
             pass
 
-        imgs = [ self.preprocess(x) for x in imgs ]
+        imgs = [self.preprocess(x) for x in imgs]
 
         return imgs
 
-
-    ## using augmentor pipelines
+    # using augmentor pipelines
     def _get_pipeline(self, path=None):
 
         p = Augmentor.Pipeline(path)
@@ -109,10 +102,10 @@ class DatasetX(data.Dataset):
 
         return p
 
-
     def _sample_images_augmentor(self, images, p, seed=-1):
 
-        if seed > -1 : p.set_seed( seed )
+        if seed > -1:
+            p.set_seed(seed)
 
         if not isinstance(images, list):
             images = [images]
@@ -124,35 +117,28 @@ class DatasetX(data.Dataset):
 
         return images
 
-
-    ## using pytorchvision transforms
+    # using pytorchvision transforms
     def _sample_images_pytorchvision(self, images=[]):
-        
+
         if not isinstance(images, list):
             images = [images]
 
-        params = transforms.RandomCrop.get_params(images[0], output_size=[224, 224]) ## get parameters
-        images = [ transformsF.crop(im, *params) for im in images ]
+        params = transforms.RandomCrop.get_params(images[0], output_size=[224, 224])   # get parameters
+        images = [transformsF.crop(im, *params) for im in images]
 
         params = transforms.RandomRotation.get_params((-15, 15))
-        images = [ transformsF.rotate(im, params) for im in images ]
-        
-        if random.random() > 0.5:
-            images = [ transformsF.hflip(im) for im in images]
+        images = [transformsF.rotate(im, params) for im in images]
 
+        if random.random() > 0.5:
+            images = [transformsF.hflip(im) for im in images]
 
         return images
 
 
-
-
 if __name__ == '__main__':
 
-
     dataset = DatasetX(use_augmentor=True)
-
-    
-    dataset_loader = data.DataLoader(dataset, batch_size=10, num_workers=5) 
+    dataset_loader = data.DataLoader(dataset, batch_size=10, num_workers=5)
 
     for i, d in enumerate(dataset_loader):
 
@@ -160,6 +146,3 @@ if __name__ == '__main__':
 
         vutils.save_image(d[0], './d0_{}.jpg'.format(i), nrow=5, normalize=True)
         vutils.save_image(d[1], './d1_{}.jpg'.format(i), nrow=5, normalize=True)
-
-
-
