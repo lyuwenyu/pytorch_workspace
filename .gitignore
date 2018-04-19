@@ -1,0 +1,9 @@
+*.jpg
+*.pyc
+*.pkl
+*log*
+*DS_Store*
+*__pycache__
+*.ipynb_checkpoints
+
+RA-CNN/
