@@ -21,7 +21,7 @@ class Solver(object):
         self.criteria = criteria
 
         self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9)
-        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=2, gamma=0.1)
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=3, gamma=0.1)
         
 
         self.epoches = epoches
@@ -62,13 +62,14 @@ class Solver(object):
     def run(self, train_data_loader=None, test_data_loader=None):
 
         for i in range(0, self.epoches):
+
+            self.scheduler.step()
+
             self.train(train_data_loader)
             self.test(test_data_loader)
 
             if i % 3 == 0:
                 self.save(prefix='{:0>3}'.format(i))
-        
-            self.scheduler.step()
 
             print(i)
 
@@ -117,20 +118,22 @@ class Solver(object):
     def load_state_dict(self, state):
         self.__dict__.update(state)
 
-    # def __getstate__(self, ):
-    #     return self.state_dict
+    def __getstate__(self, ):
+        return self.state_dict
     
-    # def __setstate__(self, state):
-    #     self.load_state_dict(state)
-    #     # self.__dict__.update(state)
+    def __setstate__(self, state):
+        self.load_state_dict(state)
+        # self.__dict__.update(state)
 
 
 if __name__ == '__main__':
 
     solver = Solver()
+    solver.run()
+
 
     print( solver.optimizer.state_dict() )
-    solver.restore(path='005.pt')
+    solver.restore(path='003.pt')
     print( solver.optimizer.state_dict() )
 
     solver.run()
