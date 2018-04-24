@@ -6,6 +6,11 @@ import logging
 import pickle
 import os
 
+class _Solver(object):
+    pass
+
+
+
 class Solver(object):
 
     def __init__(self, model=None, criteria=None, epoches=10):
@@ -60,34 +65,36 @@ class Solver(object):
 
     def save(self, prefix=''):
 
-        solver_path = '{}_solver'.format(prefix)
-        # model_path = '{}_model'.format(prefix)
-        # scheduler_path = '{}_scheduelr'.format(prefix)
+        solver_path = '{}_solver.pt'.format(prefix)
+        # model_path = '{}_model.pt'.format(prefix)
+        # scheduler_path = '{}_scheduelr.pt'.format(prefix)
 
-        # torch.save(model_path, self.model.state_dict())
+        # torch.save(self.model.state_dict(), model_path)
         
         with open(solver_path, 'wb') as f:
             pickle.dump(self.state_dict(), f)
+        # torch.save(self.state_dict(), solver_path)
 
         # scheduler
-        
+        # torch.save(self.scheduler.state_dict(), scheduler_path)
 
 
-    def restore(self, prefix=''): # solver_path=None, model_path=None, scheduler_path=None):
+    def restore(self, solver_path=None, model_path=None, scheduler_path=None):
 
-        solver_path = '{}_solver'.format(prefix)
+        # solver_path = '{}_solver'.format(prefix)
         # model_path = '{}_model'.format(prefix)
         # scheduler_path = '{}_scheduelr'.format(prefix)
 
         if os.path.exists(solver_path):
             with open(solver_path, 'rb') as f:
-                solver.load_state_dict(pickle.load(f))
+                self.load_state_dict(pickle.load(f))
+            # self.load_state_dict(torch.load(solver_path))
 
         # if os.path.exists(model_path):
         #     self.model.load_state_dict(torch.load(model_path))
-            
+                
         # if os.path.exists(scheduler_path):
-        #     pass
+        #     self.scheduler.load_state_dict(torch.load(scheduler_path))
 
 
     def state_dict(self, ):
@@ -110,11 +117,12 @@ class Solver(object):
     def load_state_dict(self, state):
         self.__dict__.update(state)
 
-    def __getstate__(self, ):
-        return self.state_dict
+    # def __getstate__(self, ):
+    #     return self.state_dict
     
-    def __setstate__(self, state):
-        self.load_state_dict(state)
+    # def __setstate__(self, state):
+    #     self.load_state_dict(state)
+    #     # self.__dict__.update(state)
 
 
 if __name__ == '__main__':
@@ -122,10 +130,10 @@ if __name__ == '__main__':
     solver = Solver()
 
     solver.run()
-    
-    solver.restore('final')
 
-    print(solver.current_epoch)
+    # solver.restore('final')
+    # print(solver.current_epoch)
+    # print(solver.__dict__)
 
     # with open('solver.pkl', 'wb') as f:
     #     pickle.dump(solver.state_dict(), f)
@@ -133,6 +141,11 @@ if __name__ == '__main__':
     # with open('solver.pkl', 'rb') as f:
     #     solver.load_state_dict( pickle.load(f) )
 
+    # print(solver.current_epoch)
+
+    torch.save( solver.state_dict(), 'test' )
+    solver.load_state_dict( torch.load('test') )
+    print(solver.current_epoch)
 
     # print( pickle.dumps(solver) )
     # solver1 = pickle.loads( pickle.dumps(solver) )
