@@ -1,6 +1,7 @@
 import functools
 import random
 import glob
+import skimage
 
 import torch
 from torchvision import transforms
@@ -80,6 +81,10 @@ class DatasetX(data.Dataset):
 
             imgs = _imgs
 
+            if random.random()< 0.5:
+                imgs = [ 255 * skimage.util.random_noise(np.array(x), mode='gaussian', clip=True, seed=_seed) for x in imgs ]   # skimage.util.img_as_ubyte()
+                imgs = [ Image.fromarray(x.astype(np.uint8)) for x in imgs ]
+
         else:  # test phase
 
             pass
@@ -94,21 +99,26 @@ class DatasetX(data.Dataset):
         p = Augmentor.Pipeline(path)
 
         p.crop_random(probability=0.5, percentage_area=0.7)
-        p.resize(probability=1.0, width=512, height=512)
+        # p.resize(probability=1.0, width=512, height=512)
         p.flip_left_right(probability=0.5)
         p.rotate(probability=0.5, max_left_rotation=10, max_right_rotation=10)
         p.shear(probability=0.4, max_shear_left=10, max_shear_right=10)
-        p.random_distortion(probability=0.3, grid_height=5, grid_width=5, magnitude=2)
+        # p.random_distortion(probability=0.3, grid_height=5, grid_width=5, magnitude=2)
+        p.skew(probability=0.5)
+
 
         return p
 
-    def _sample_images_augmentor(self, images, p, seed=-1):
+    def _sample_images_augmentor(self, images, p, seed=-1, random_order=False):
 
         if seed > -1:
             p.set_seed(seed)
 
         if not isinstance(images, list):
             images = [images]
+
+        if random_order:
+            random.shuffle(p.operations)
 
         for operation in p.operations:
             r = round(random.uniform(0, 1), 1)

@@ -3,9 +3,9 @@ import numpy as np
 from collections import defaultdict
 
 
-x = np.random.rand(1000, 100)
+x = np.random.rand(1000, 100) ## here should use meaningful features
 
-kmeans = KMeans(n_clusters=10, random_state=0, precompute_distances=True, max_iter=50, n_init=20).fit(x)
+kmeans = KMeans(n_clusters=10, random_state=0, precompute_distances=True, max_iter=50, n_init=20).fit(x) ### n cluster point
 
 
 cluster = defaultdict(list)
