@@ -88,7 +88,7 @@ def get_results(prediction, confidence=0.8, num_classes=80, nms_conf=0.6):
             class_mask_ind = torch.nonzero(cls_mask[:, -2]).squeeze()
             image_pred_class = image_pred_[class_mask_ind].view(-1, 7)
 
-            conf_sort_index = torch.sort(image_pred_class[:,5], descending=True)[1]  ## using class confidence, not objectness
+            conf_sort_index = torch.sort(image_pred_class[:,4], descending=True)[1]  ## using objectness, not class confidence
             image_pred_class = image_pred_class[conf_sort_index]    
             idx = image_pred_class.size()[0]
 

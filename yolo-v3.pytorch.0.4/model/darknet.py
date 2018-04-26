@@ -311,7 +311,10 @@ if __name__ == '__main__':
 
 
     darknet = DarkNet('yolov3.cfg')
-    darknet.load_weights('yolov3.weights')
+    darknet.load_state_dict(torch.load('yolo-v3.pt'))
+    # darknet.load_weights('yolov3.weights')
+    darknet.eval()
+
     classes = load_classes('coco.names')
 
     img = pre_image('dog-cycle-car.png', 416)
@@ -332,7 +335,7 @@ if __name__ == '__main__':
     
     for i in range(result.shape[0]):
         res = result[i]
+        print(classes[int(res[-1])])
         draw.rectangle( (res[1], res[2], res[3], res[4]), outline=(255, 0, 0))
 
-    # origin_image = origin_image.resize(origin_shape)
     origin_image.save('out.jpg')
