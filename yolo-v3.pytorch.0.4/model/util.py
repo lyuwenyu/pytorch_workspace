@@ -88,7 +88,7 @@ def get_results(prediction, confidence=0.8, num_classes=80, nms_conf=0.6):
             class_mask_ind = torch.nonzero(cls_mask[:, -2]).squeeze()
             image_pred_class = image_pred_[class_mask_ind].view(-1, 7)
 
-            conf_sort_index = torch.sort(image_pred_class[:,4], descending=True)[1]
+            conf_sort_index = torch.sort(image_pred_class[:,5], descending=True)[1]  ## using class confidence, not objectness
             image_pred_class = image_pred_class[conf_sort_index]    
             idx = image_pred_class.size()[0]
 
@@ -117,8 +117,6 @@ def get_results(prediction, confidence=0.8, num_classes=80, nms_conf=0.6):
     return res
 
 
-
-
 def unique(tensor): # 0.4
     
     tnp = tensor.cpu().numpy()
@@ -143,14 +141,11 @@ def bbox_iou(box1, box2):
 
     b1_area = (b1_x2 - b1_x1 + 1) * (b1_y2 - b1_y1 + 1)
     b2_area = (b2_x2 - b2_x1 + 1) * (b2_y2 - b2_y1 + 1)
-
     inter_area = (inter_x2 - inter_x1 + 1) * (inter_y2 - inter_y1 + 1)
 
     iou = inter_area / ( b1_area + b2_area - inter_area)
 
     return iou
-
-
 
 
 def pre_image(img, inp_dim):
