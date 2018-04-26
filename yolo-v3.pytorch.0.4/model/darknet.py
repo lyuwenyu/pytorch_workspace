@@ -147,7 +147,7 @@ def create_modules(blocks):
         pre_filters = filters
         out_filters += [filters]
     
-    print(out_filters)
+    # print(out_filters)
 
     return net_info, module_list
 
@@ -203,7 +203,7 @@ class DarkNet(nn.Module):
                 inp_dim = int(self.net_info['height'])
                 num_classes = int(m['classes'])
 
-                detections += [ predict_transform(x.data, inp_dim, anchors, num_classes) ]
+                detections += [ predict_transform(x, inp_dim, anchors, num_classes) ]
 
             outputs[i] = x
 
