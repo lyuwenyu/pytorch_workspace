@@ -319,16 +319,20 @@ if __name__ == '__main__':
     
     detections = darknet(img)
 
-    result = get_results(detections.data)
+    result = get_results(detections.data, confidence=0.5, nms_conf=0.4)
     
     result = torch.clamp(result, 0., float(416))
     result = np.array(result)
 
+    ## 
     origin_image = Image.open('dog-cycle-car.png')
+    origin_shape = origin_image.size
+    origin_image = origin_image.resize([416,416])
     draw = ImageDraw.Draw(origin_image)
     
     for i in range(result.shape[0]):
         res = result[i]
         draw.rectangle( (res[1], res[2], res[3], res[4]), outline=(255, 0, 0))
 
+    # origin_image = origin_image.resize(origin_shape)
     origin_image.save('out.jpg')

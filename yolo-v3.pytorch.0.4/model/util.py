@@ -55,7 +55,7 @@ def get_results(prediction, confidence=0.8, num_classes=80, nms_conf=0.6):
     box_corner[:,:,0] = prediction[:,:,0] - prediction[:,:,2]/2
     box_corner[:,:,1] = prediction[:,:,1] - prediction[:,:,3]/2
     box_corner[:,:,2] = prediction[:,:,0] + prediction[:,:,2]/2
-    box_corner[:,:,3] = prediction[:,:,0] + prediction[:,:,3]/2
+    box_corner[:,:,3] = prediction[:,:,1] + prediction[:,:,3]/2
     prediction[:,:,:4] = box_corner[:,:,:4]
 
 
