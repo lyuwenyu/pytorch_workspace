@@ -6,6 +6,7 @@ from torch.autograd import Variable ##
 import numpy as np
 from collections import OrderedDict
 
+from util import predict_transform
 
 def parse_cfg(cfgfile):
 
@@ -164,7 +165,8 @@ class DarkNet(nn.Module):
         
         modules = self.blocks[1:]
         outputs = {}
-        write = 0
+        
+        detections = []
 
         for i, m in enumerate(modules):
 
@@ -201,16 +203,16 @@ class DarkNet(nn.Module):
                 inp_dim = int(self.net_info['height'])
                 num_classes = int(m['classes'])
 
-                # x = predict_transform(x, inp_dim, anchors, num_classes)
-                # if not write:
-                #     detections = x
-                #     write = 1
-                # else:
-                #     detections  = torch.cat((detections, x), 1)
+                detections += [ predict_transform(x.data, inp_dim, anchors, num_classes) ]
 
             outputs[i] = x
 
-        return 0
+
+        res = detections[0]
+        for dets in detections[1:]:
+            res = torch.cat([res, dets], dim=1)
+
+        return res
 
 
 
@@ -220,15 +222,11 @@ if __name__ == '__main__':
 
     # info, modules = create_modules(blocks)
 
-    # print(info)
-    # print(modules)
-    # print(blocks)
-
 
     darknet = DarkNet('yolov3.cfg')
 
-    # x = Variable(torch.randn(1, 3, 512, 512))
-    x = torch.randn(1, 3, 512, 512)
+    x = Variable(torch.randn(1, 3, 416, 416))
+
     print(darknet)
     
     print( darknet(x) )
