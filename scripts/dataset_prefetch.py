@@ -18,11 +18,11 @@ label_map = {
 
 
 
-class Prefech(Process):
+class Prefetch(Process):
     
     def __init__(self, path, queue, is_training, label_map, batch_size, out_size):
         
-        super(Prefech, self).__init__()
+        super(Prefetch, self).__init__()
 
         with open(path, 'r') as f:
             raw_data = json.load(f)
@@ -132,7 +132,7 @@ class Dataset(object):
     
         fetch_process = []
         for i in range(num_workers):
-            fetch_process += [Prefech(path, self.queue, is_training=is_training, label_map=label_map, batch_size=batch_size, out_size=out_size)]
+            fetch_process += [Prefetch(path, self.queue, is_training=is_training, label_map=label_map, batch_size=batch_size, out_size=out_size)]
             fetch_process[i].start()
 
         def clean_up():
