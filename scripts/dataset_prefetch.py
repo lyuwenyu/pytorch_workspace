@@ -11,39 +11,9 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 import Augmentor
 
 label_map = {
-    "L_JSBTC 355ml": 0,
-    "P_FJBPJ 330ml": 1,
-    "P_FKGHXM 330ml": 2,
-    "P_JSBBC 330ml": 3,
-    "P_JSBMSPGQJ 330ml": 4,
-    "P_JSBTC 330ml": 5,
-    "P_JSBTC 640ml": 6,
-    "P_JSBYLXD 330ml": 7,
-    "P_KX1664BP 250ml": 8,
-    "P_KX1664BP 330ml": 9,
-    "P_KX1664FG 250ml": 10,
-    "P_KX1664HP 250ml": 11,
-    "P_KX1664JP 250ml": 12,
-    "P_KX1664MG 250ml": 13,
-    "P_KX1664SM 250ml": 14,
-    "P_KX1664TH 330ml": 15,
-    "P_LB 330ml": 16,
-    "P_QD11DXP 330ml": 17,
-    "P_XL 330ml": 18,
-    "P_YJJPPJ11D 300ml": 19,
-    "T_HEBCS 500ml": 20,
-    "T_JSBPJ 500ml": 21,
-    "T_JSBTC 500ml": 22,
-    "T_KX1664HP 500ml": 23,
-    "T_LB 330ml": 24,
-    "T_QD11DYZ 330ml": 25,
-    "T_QDAGT12 500ml": 26,
-    "T_QDPJ 500ml": 27,
-    "T_XL 330ml": 28,
-    "T_YJ12DYJBP 500ml": 29,
-    "T_YJPJ 330ml": 30,
-    "T_YJXP 500ml": 31,
-    "qita": 32
+    "class1": 0,
+    "class2": 1,
+    "class3": 2
 }
 
 
@@ -181,7 +151,7 @@ class Dataset(object):
 
 if __name__ == '__main__':
 
-    test = Dataset(path='beer_patch_with_mask_data_train.json', num_workers=5, batch_size=4, out_size=224)
+    test = Dataset(path='train.json', num_workers=5, batch_size=4, out_size=224)
 
     for i in range(100):
         blob = test.get_data()
