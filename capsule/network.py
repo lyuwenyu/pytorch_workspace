@@ -49,8 +49,6 @@ class CapsuleLayer(nn.Module):
             outputs = squash( (priors*probs).sum(dim=2, keepdim=True) )
             
             delta_c = (priors*outputs).sum(dim=-1, keepdim=True)  #
-            # t = priors - outputs
-            # k = torch.exp(torch.dot(t, t)) / (sigma**2)
             B = B + delta_c
 
         return outputs.squeeze()
