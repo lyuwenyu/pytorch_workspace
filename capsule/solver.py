@@ -29,8 +29,8 @@ class Solver(object):
         self.device = torch.device(config.device)
         self.device_ids = config.device_ids
         
-        self.model = network.CapsuleNet().to(device)
-        self.criteria = network.CapsuleLoss().to(device)
+        self.model = network.CapsuleNet().to(self.device)
+        self.criteria = network.CapsuleLoss().to(self.device)
 
         # self.optimizer = optim.SGD(self.model.parameters(), lr=0.01, momentum=0.9)
         # self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
