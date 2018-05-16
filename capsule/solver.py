@@ -20,13 +20,13 @@ import config
 
 class Solver(object):
 
-    def __init__(self, model=None, criteria=None, epoches=10, device=torch.device(config.device), outputs_dir=config.output_dir):
+    def __init__(self, model=None, criteria=None, epoches=10, outputs_dir=config.output_dir):
 
         self.outputs_dir = outputs_dir
         if not os.path.exists(outputs_dir):
             os.mkdir(outputs_dir)
             
-        self.device = device
+        self.device = torch.device(config.device)
         self.device_ids = config.device_ids
         
         self.model = network.CapsuleNet().to(device)
