@@ -4,6 +4,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torchvision.datasets.mnist import MNIST
 import torch.utils.data as data
+from torch.nn.parallel.data_parallel import data_parallel
 
 import numpy as np
 from collections import OrderedDict
@@ -26,6 +27,8 @@ class Solver(object):
             os.mkdir(outputs_dir)
             
         self.device = device
+        self.device_ids = config.device_ids
+        
         self.model = network.CapsuleNet().to(device)
         self.criteria = network.CapsuleLoss().to(device)
 
@@ -67,7 +70,8 @@ class Solver(object):
             x = x.to(self.device)
             y = y.to(self.device)
 
-            logits = self.model(x)
+            # logits = self.model(x)
+            logits = data_parallel(self.model, x, device_ids=self.device_ids)
             loss = self.criteria(logits, y)
 
             self.optimizer.zero_grad()
