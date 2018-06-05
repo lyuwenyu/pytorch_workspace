@@ -1,29 +1,36 @@
 import torch
 import torch.utils.data as data
-
-from tensorflow.examples.tutorials.mnist import input_data
+from torchvision.datasets.mnist import MNIST as MNISTx
+import torchvision.transforms as transforms
+# from tensorflow.examples.tutorials.mnist import input_data
 
 
 class MNIST(data.Dataset):
 
-    def __init__(self,):
+    def __init__(self, train=True, root='/home/lvwenyu/workspace/pytorch/data'):
 
-        mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
+        if train:
+            self.dataset = MNISTx(root=root, train=True)
+        else:
+            self.dataset = MNISTx(root=root, train=False)
+        self.transform = transforms.Compose( [transforms.ToTensor()] )
 
-        self.imgs = mnist.train.images
-        self.labs = mnist.train.labels
 
-    def __len__(self):
-
-        return self.imgs.shape[0]
+    def __len__(self,):
+        return len(self.dataset)
 
 
     def __getitem__(self, i):
 
-        # (self.imgs[i]-0.5)/0.5
-        return (self.imgs[i]-0.5)/0.5, self.labs[i]
+        img = self.dataset[i][0]
+        lab = self.dataset[i][1]
 
+        img = self.transform(img)
+        img = 2 * (img - 0.5)
 
+        # lab = torch.eye(10)[lab]
+
+        return img, lab
 
 
 if __name__ == '__main__':
@@ -36,3 +43,8 @@ if __name__ == '__main__':
     for xx, yy in dataloader:
 
         print(xx.size(), yy.size())
+
+
+        print(xx)
+
+        break

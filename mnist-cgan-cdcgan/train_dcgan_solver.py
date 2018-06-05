@@ -22,7 +22,6 @@ try:
 except:
 	raise RuntimeError('no tensorboardX')
 
-data.DataLoader()
 class Solver(object):
 
 
