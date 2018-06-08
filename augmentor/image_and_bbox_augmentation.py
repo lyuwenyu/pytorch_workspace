@@ -19,8 +19,7 @@ p.random_distortion(probability=1.0, grid_height=50, grid_width=50, magnitude=2)
 def new_image(bbx, h, w):
     _tmp = np.zeros(shape=(h, w))
     _tmp[bbx[1]: bbx[3], bbx[0]: bbx[2]] = 255
-    img_tmp = Image.fromarray(_tmp)
-    return img_tmp
+    return Image.fromarray(_tmp)
 
 def sample(p, images):
     for operation in p.operations:
@@ -50,8 +49,8 @@ def generate(xml_path='./1.xml', img_path='./1.jpg'):
             bbox += [bbx]
             
         images = [new_image(bb, h, w) for bb in bbox]
-
         images = sample(p, [img]+images)
+        
         new_bbox = [im.getbbox() for im in images[1:]]
 
         blob = [ (n, b) for n, b in zip(name, new_bbox) if b is not None ]
@@ -60,7 +59,7 @@ def generate(xml_path='./1.xml', img_path='./1.jpg'):
     return images[0], blob
 
 
-def func(opts): #outdir='./outdir', num=100):
+def func(opts):
 
     if not os.path.exists(opts['outdir']):
         os.makedirs(opts['outdir'])
