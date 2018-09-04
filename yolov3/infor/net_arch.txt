@@ -1,0 +1,118 @@
+107
+torch.Size([2, 32, 416, 416]) convolutional
+
+torch.Size([2, 64, 208, 208]) convolutional
+torch.Size([2, 32, 208, 208]) convolutional
+torch.Size([2, 64, 208, 208]) convolutional
+torch.Size([2, 64, 208, 208]) shortcut
+
+torch.Size([2, 128, 104, 104]) convolutional
+torch.Size([2, 64, 104, 104]) convolutional
+torch.Size([2, 128, 104, 104]) convolutional
+torch.Size([2, 128, 104, 104]) shortcut
+torch.Size([2, 64, 104, 104]) convolutional
+torch.Size([2, 128, 104, 104]) convolutional
+torch.Size([2, 128, 104, 104]) shortcut
+
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) shortcut
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) shortcut
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) shortcut
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) shortcut
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) shortcut
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) shortcut
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) shortcut
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) shortcut
+
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) shortcut
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) shortcut
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) shortcut
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) shortcut
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) shortcut
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) shortcut
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) shortcut
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) shortcut
+
+torch.Size([2, 1024, 13, 13]) convolutional
+torch.Size([2, 512, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) shortcut
+torch.Size([2, 512, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) shortcut
+torch.Size([2, 512, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) shortcut
+torch.Size([2, 512, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) shortcut
+torch.Size([2, 512, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) convolutional
+torch.Size([2, 512, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) convolutional
+torch.Size([2, 512, 13, 13]) convolutional
+torch.Size([2, 1024, 13, 13]) convolutional
+
+torch.Size([2, 255, 13, 13]) convolutional
+torch.Size([2, 255, 13, 13]) yolo
+
+torch.Size([2, 512, 13, 13]) route
+torch.Size([2, 256, 13, 13]) convolutional
+torch.Size([2, 256, 26, 26]) upsample
+torch.Size([2, 768, 26, 26]) route
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+torch.Size([2, 256, 26, 26]) convolutional
+torch.Size([2, 512, 26, 26]) convolutional
+
+torch.Size([2, 255, 26, 26]) convolutional
+torch.Size([2, 255, 26, 26]) yolo
+
+torch.Size([2, 256, 26, 26]) route
+torch.Size([2, 128, 26, 26]) convolutional
+torch.Size([2, 128, 52, 52]) upsample
+torch.Size([2, 384, 52, 52]) route
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+torch.Size([2, 128, 52, 52]) convolutional
+torch.Size([2, 256, 52, 52]) convolutional
+
+torch.Size([2, 255, 52, 52]) convolutional
+torch.Size([2, 255, 52, 52]) yolo
