@@ -1,14 +1,19 @@
 import sys
 import os
+import time
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 filedir = os.path.dirname(os.path.abspath(__file__))
 path = os.path.join(filedir, '..', 'utils')
 sys.path.insert(0, path)
+sys.path.insert(0, filedir)
 from utils.parse_config import parse_config
-import numpy as np
-import time
+from build_target import build_target
+
 
 VERSION = torch.__version__
 
@@ -43,10 +48,10 @@ def create_model(model_defs):
                 module.add_module(f'leaky_{i}', nn.LeakyReLU(0.1))
 
         elif defs['type'] == 'upsample':
-            if VERSION == '0.4.1':
+            if VERSION >= '0.4.1':
                 module.add_module(f'upsample_{i}', EmptyLayer())
             else:
-                upsample = nn.Upsample(scale_factor=int(defs['stride']), mode='bilinear')
+                upsample = nn.Upsample(scale_factor=int(defs['stride']), mode='nearest')
                 module.add_module(f'upsample_{i}', upsample)
         
         elif defs['type'] == 'route':
@@ -105,21 +110,27 @@ class YOLOLayer(nn.Module):
         self.scaled_anchors = (torch.tensor(anchors)/stride).to(torch.float32)        
         self.anchor_w = self.scaled_anchors[:, 0]
         self.anchor_h = self.scaled_anchors[:, 1]
-        # print('self.anchor_w/h: ', self.anchor_h.shape)
-        if VERSION == '0.4.1':
+
+        if VERSION >= '0.4.1':
             self.grid_x, self.grid_y = torch.meshgrid((torch.arange(self.nG), torch.arange(self.nG)))
         else:
             self.grid_x = torch.arange(self.nG).repeat(self.nG, 1)
             self.grid_y = torch.arange(self.nG).repeat(self.nG, 1).t()
 
-        # print(self.grid_x.shape, self.grid_y.shape)
+        print(self.scaled_anchors.shape)
+
+        self.mseLoss = nn.MSELoss(size_average=True)
+        self.crossEntropyLoss = nn.CrossEntropyLoss(size_average=True)
+        self.bceLoss1 = nn.BCELoss(size_average=True)
+        self.bceLoss2 = nn.BCELoss(size_average=False)
 
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
         '''forward '''
         bs = p.shape[0]
         nG = p.shape[2]
         stride = self.stride
-
+        assert nG == self.nG, 'grid pixel should be same.'
+        
         p = p.view(bs, self.nA, self.bbox_attrs, nG, nG).permute(0, 1, 3, 4, 2).contiguous()
 
         x = torch.sigmoid(p[..., 0])
@@ -143,16 +154,46 @@ class YOLOLayer(nn.Module):
             out = torch.cat((
                 pred_boxes.view(bs, -1, 4) * stride,
                 torch.sigmoid(pred_conf).view(bs, -1, 1),
-                pred_cls.view(bs, -1, self.nC)
-            ), dim=-1)
+                pred_cls.view(bs, -1, self.nC)),
+                dim=-1)
 
             return out
         
         else: # train phase TODO 
 
-            pass
-        
-        return p
+            if requestPrecision:
+                pred_boxes[..., 0] = x + self.grid_x.to(dtype=x.dtype, device=x.device) - width / 2
+                pred_boxes[..., 1] = y + self.grid_y.to(dtype=x.dtype, device=x.device) - height / 2
+                pred_boxes[..., 2] = x + self.grid_x.to(dtype=x.dtype, device=x.device) + width / 2
+                pred_boxes[..., 3] = x + self.grid_y.to(dtype=x.dtype, device=x.device) + height / 2
+
+            tx, ty, tw, th, tconf, tcls = build_target(pred_boxes, 
+                                                        pred_conf, 
+                                                        pred_cls, 
+                                                        target, 
+                                                        self.scaled_anchors, 
+                                                        self.nA, self.nC, self.nG,
+                                                        requestPrecision)
+            nM = tconf.sum().float()
+
+            if nM > 0:
+                lx = self.mseLoss(x[tconf], tx[tconf])
+                ly = self.mseLoss(y[tconf], ty[tconf])
+                lw = self.mseLoss(w[tconf], tw[tconf])
+                lh = self.mseLoss(h[tconf], th[tconf])
+                lconf = self.bceLoss2(pred_conf[tconf], tconf[tconf].to(dtype=pred_conf.dtype, device=pred_conf.device))
+                lcls = self.crossEntropyLoss(pred_cls[tconf], torch.argmax(tcls[tconf], 1))
+
+            else:
+                lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, )]*6
+
+            lconf += nM * self.bceLoss1(pred_conf[~tconf], tconf[~tconf].to(dtype=pred_conf.dtype, device=pred_conf.device))
+            # lconf = lconf / nM
+
+            loss = lx + ly + lw + lh + lconf + lcls
+
+        return loss 
+
 
 #---
 class DarkNet(nn.Module):
@@ -162,6 +203,8 @@ class DarkNet(nn.Module):
         self.module_defs = parse_config(cfg)
         self.module_defs[0]['height'] = img_size
         self.module_list = create_model(self.module_defs)
+
+        self.loss_names = ['loss', 'x', 'y', 'w', 'h', 'conf', 'cls', ]
 
     def forward(self, x, target=None, requestPrecision=False, epoch=None):
         
@@ -204,6 +247,7 @@ class DarkNet(nn.Module):
 
         else:
             pass
+
 
     def load_weights(self, weights_path):
         """Parses and loads the weights stored in 'weights_path'"""

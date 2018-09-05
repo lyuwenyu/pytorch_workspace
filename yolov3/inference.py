@@ -27,7 +27,7 @@ image = pre_image(img_path, 416)
 data = image.to(dtype=torch.float32, device=device)
 pred = model(data.to(device=device))
 
-res = pred[pred[:, :, 4] > 0.9]
+res = pred[pred[:, :, 4] > 0.99]
 
 for p in res.cpu().data.numpy():
     draw.rectangle((p[0]-p[2]/2, p[1]-p[3]/2, p[0]+p[2]/2, p[1]+p[3]/2), outline='red')
