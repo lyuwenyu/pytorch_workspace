@@ -46,7 +46,7 @@ def create_model(model_defs):
             if VERSION == '0.4.1':
                 module.add_module(f'upsample_{i}', EmptyLayer())
             else:
-                upsample = nn.Upsample(scale_factor=int(defs['stride']), mode='nearest')
+                upsample = nn.Upsample(scale_factor=int(defs['stride']), mode='bilinear')
                 module.add_module(f'upsample_{i}', upsample)
         
         elif defs['type'] == 'route':
@@ -112,13 +112,13 @@ class YOLOLayer(nn.Module):
             self.grid_x = torch.arange(self.nG).repeat(self.nG, 1)
             self.grid_y = torch.arange(self.nG).repeat(self.nG, 1).t()
 
-        print(self.grid_x.shape, self.grid_y.shape)
+        # print(self.grid_x.shape, self.grid_y.shape)
 
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
         '''forward '''
         bs = p.shape[0]
         nG = p.shape[2]
-        stride = self.img_dim / nG
+        stride = self.stride
 
         p = p.view(bs, self.nA, self.bbox_attrs, nG, nG).permute(0, 1, 3, 4, 2).contiguous()
 
@@ -134,8 +134,6 @@ class YOLOLayer(nn.Module):
         pred_conf = p[..., 4]
         pred_cls = p[..., 5:]
 
-        # print(pred_boxes.shape, pred_conf.shape, pred_cls.shape)
-
         if target is None: # test phase
             pred_boxes[..., 0] = x + self.grid_x.to(dtype=x.dtype, device=x.device)
             pred_boxes[..., 1] = y + self.grid_y.to(dtype=y.dtype, device=y.device)
@@ -148,8 +146,6 @@ class YOLOLayer(nn.Module):
                 pred_cls.view(bs, -1, self.nC)
             ), dim=-1)
 
-            # print('out.shape', out.shape)
-
             return out
         
         else: # train phase TODO 
@@ -160,7 +156,7 @@ class YOLOLayer(nn.Module):
 
 #---
 class DarkNet(nn.Module):
-    def __init__(self, cfg, img_size=256):
+    def __init__(self, cfg, img_size):
         super(DarkNet, self).__init__()
         
         self.module_defs = parse_config(cfg)
@@ -173,7 +169,7 @@ class DarkNet(nn.Module):
         outputs = []
 
         for _, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
-            
+
             if module_def['type'] == 'convolutional':
                 x = module(x)
 
@@ -181,33 +177,85 @@ class DarkNet(nn.Module):
                 layers = [int(l) for l in module_def['layers'].split(',')]
                 x = torch.cat([layer_outputs[l] for l in layers], dim=1)
 
-            elif module_def['type'] == 'shoutcut':
+            elif module_def['type'] == 'shortcut':
                 layer_i = int(module_def['from'])
                 x = layer_outputs[-1] + layer_outputs[layer_i]
 
             elif module_def['type'] == 'upsample':
                 if VERSION == '0.4.1':
-                    x = F.interpolate(layer_outputs[-1], scale_factor=int(module_def['stride']), mode='nearest')
+                    x = F.interpolate(layer_outputs[-1], scale_factor=int(module_def['stride']), mode='nearest',)
                 else:
                     x = module(x)
 
             elif module_def['type'] == 'yolo':
-                if target is None: # test phase
+                if target is None: # test phase)
                     x = module(x)
 
                 else: # training phase TODO
                     pass
                 
                 outputs += [x]
-
-            # print(x.size())
+            
             layer_outputs += [x]
+
 
         if target is None:
             return torch.cat(outputs, dim=1)
 
         else:
             pass
+
+    def load_weights(self, weights_path):
+        """Parses and loads the weights stored in 'weights_path'"""
+
+        # Open the weights file
+        fp = open(weights_path, 'rb')
+        header = np.fromfile(fp, dtype=np.int32, count=5)  # First five are header values
+
+        # Needed to write header when saving weights
+        self.header_info = header
+
+        self.seen = header[3]
+        weights = np.fromfile(fp, dtype=np.float32)  # The rest are weights
+        fp.close()
+
+        ptr = 0
+        for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+            if module_def['type'] == 'convolutional':
+                conv_layer = module[0]
+                if module_def.get('batch_normalize', 0):
+                    # Load BN bias, weights, running mean and running variance
+                    bn_layer = module[1]
+                    num_b = bn_layer.bias.numel()  # Number of biases
+                    # Bias
+                    bn_b = torch.from_numpy(weights[ptr:ptr + num_b]).view_as(bn_layer.bias)
+                    bn_layer.bias.data.copy_(bn_b)
+                    ptr += num_b
+                    # Weight
+                    bn_w = torch.from_numpy(weights[ptr:ptr + num_b]).view_as(bn_layer.weight)
+                    bn_layer.weight.data.copy_(bn_w)
+                    ptr += num_b
+                    # Running Mean
+                    bn_rm = torch.from_numpy(weights[ptr:ptr + num_b]).view_as(bn_layer.running_mean)
+                    bn_layer.running_mean.data.copy_(bn_rm)
+                    ptr += num_b
+                    # Running Var
+                    bn_rv = torch.from_numpy(weights[ptr:ptr + num_b]).view_as(bn_layer.running_var)
+                    bn_layer.running_var.data.copy_(bn_rv)
+                    ptr += num_b
+                else:
+                    # Load conv. bias
+                    num_b = conv_layer.bias.numel()
+                    conv_b = torch.from_numpy(weights[ptr:ptr + num_b]).view_as(conv_layer.bias)
+                    conv_layer.bias.data.copy_(conv_b)
+                    ptr += num_b
+                # Load conv. weights
+                num_w = conv_layer.weight.numel()
+                conv_w = torch.from_numpy(weights[ptr:ptr + num_w]).view_as(conv_layer.weight)
+                conv_layer.weight.data.copy_(conv_w)
+                ptr += num_w
+
+
 
 
 if __name__ == '__main__':
@@ -217,11 +265,13 @@ if __name__ == '__main__':
     data = torch.rand(2, 3, 416, 416).to(device=torch.device('cuda'))
     model = DarkNet(path, img_size=416)
     model.load_state_dict(torch.load(os.path.join(filedir, 'yolov3.torch')))
-    # model.load_weights(weights_path=os.path.join(filedir, 'yolov3.weights'))
-    # torch.save(model.state_dict(), os.path.join(filedir, 'yolov3.torch'))
-
     model.eval()
     model = model.cuda()
+
+    # model.load_weights(weights_path=os.path.join(filedir, 'yolov3.weights'))
+    torch.save(model.state_dict(), os.path.join(filedir, 'yolov3.torch'))
+
+
 
     tic = time.time()
     print(model(data).shape)
