@@ -7,3 +7,5 @@
 *.ipynb_checkpoints
 
 RA-CNN/
+*.weights
+*.torch
