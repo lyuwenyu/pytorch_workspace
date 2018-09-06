@@ -35,6 +35,7 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
     '''
     nGT, nCorrect, tx, ty, tw, th, tconf, tcls
     '''
+    ignore_threshold = 0.5
 
     nB = len(target)
     nT = [len(bs) for bs in target]
@@ -46,6 +47,8 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
 
     tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0)
     tcls = torch.ByteTensor(nB, nA, nG, nG, nC).fill_(0)
+
+    conf_mask = torch.ByteTensor(nB, nA, nG, nG).fill_(1)
 
     TP = torch.ByteTensor(nB, max(nT)).fill_(0)
     FP = torch.ByteTensor(nB, max(nT)).fill_(0)
@@ -70,13 +73,20 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
 
         inter_area = torch.min(box_t, box_a).prod(2)
         iou_anchor = inter_area / (gw * gh + box_a.prod(2) - inter_area + 1e-15)
+
+        # ignore overlap > threshhold
+        _gi = gi.repeat(nA, 1)[iou_anchor > ignore_threshold]
+        _gj = gj.repeat(nA, 1)[iou_anchor > ignore_threshold]
+        _a = torch.arange(nA).view(nA, 1).repeat(1, nTb).long()[iou_anchor > ignore_threshold]
+        conf_mask[i, _a, _gj, _gi] = 0
+
         iou_anchor_best, a = iou_anchor.max(0) # best anchor for each target.
 
         # two targets can not claim the same anchor.
         if nTb > 1:
             _, iou_order = torch.sort(iou_anchor_best, descending=True)
             u = gi.float() * 0.3425405 + gj.float() * 0.2343235 * a.float() * 0.6462432
-            uniq = torch.unique(u[iou_order])
+            # uniq = torch.unique(u[iou_order])
             _, uindex = np.unique(u[iou_order], return_index=True) # using numpy function
             # print(type(uindex))
             k = iou_order[uindex]
@@ -95,7 +105,9 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
         else:
             if iou_anchor_best < 0.01: continue
             k = 0
-        
+
+        # print(a)
+
         tx[i, a, gj, gi] = gx - gi.float()
         ty[i, a, gj, gi] = gy - gj.float()
 
@@ -104,13 +116,14 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
 
         tconf[i, a, gj, gi] = 1
         tcls[i, a, gj, gi, tc] = 1
+        conf_mask[i, a, gj, gi] = 1
 
         if requestPrecision:
             pass
 
     print(tcls.requires_grad)
 
-    return tx, ty, tw, th, tconf, tcls
+    return tx, ty, tw, th, tconf, tcls, conf_mask
 
 
 
