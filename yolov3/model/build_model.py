@@ -120,9 +120,9 @@ class YOLOLayer(nn.Module):
         print(self.scaled_anchors.shape)
 
         self.mseLoss = nn.MSELoss(size_average=True)
-        self.crossEntropyLoss = nn.CrossEntropyLoss(size_average=True)
-        self.bceLoss1 = nn.BCELoss(size_average=True)
-        self.bceLoss2 = nn.BCELoss(size_average=False)
+        # self.crossEntropyLoss = nn.CrossEntropyLoss(size_average=True)
+        self.bceLoss = nn.BCELoss(size_average=True)
+        # self.bceLoss2 = nn.BCELoss(size_average=False)
 
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
         '''forward '''
@@ -145,7 +145,7 @@ class YOLOLayer(nn.Module):
         pred_conf = p[..., 4]
         pred_cls = p[..., 5:]
 
-        if target is None: # test phase
+        if target is None: # inference phase
             pred_boxes[..., 0] = x + self.grid_x.to(dtype=x.dtype, device=x.device)
             pred_boxes[..., 1] = y + self.grid_y.to(dtype=y.dtype, device=y.device)
             pred_boxes[..., 2] = width
@@ -167,27 +167,30 @@ class YOLOLayer(nn.Module):
                 pred_boxes[..., 2] = x + self.grid_x.to(dtype=x.dtype, device=x.device) + width / 2
                 pred_boxes[..., 3] = x + self.grid_y.to(dtype=x.dtype, device=x.device) + height / 2
 
-            tx, ty, tw, th, tconf, tcls = build_target(pred_boxes, 
-                                                        pred_conf, 
-                                                        pred_cls, 
-                                                        target, 
-                                                        self.scaled_anchors, 
-                                                        self.nA, self.nC, self.nG,
-                                                        requestPrecision)
+            tx, ty, tw, th, tconf, tcls, conf_mask = build_target(pred_boxes, 
+                                                            pred_conf, 
+                                                            pred_cls, 
+                                                            target, 
+                                                            self.scaled_anchors, 
+                                                            self.nA, self.nC, self.nG,
+                                                            requestPrecision)
             nM = tconf.sum().float()
+            mask = tconf
 
             if nM > 0:
-                lx = self.mseLoss(x[tconf], tx[tconf])
-                ly = self.mseLoss(y[tconf], ty[tconf])
-                lw = self.mseLoss(w[tconf], tw[tconf])
-                lh = self.mseLoss(h[tconf], th[tconf])
-                lconf = self.bceLoss2(pred_conf[tconf], tconf[tconf].to(dtype=pred_conf.dtype, device=pred_conf.device))
-                lcls = self.crossEntropyLoss(pred_cls[tconf], torch.argmax(tcls[tconf], 1))
-
+                lx = self.mseLoss(x[mask], tx[mask])
+                ly = self.mseLoss(y[mask], ty[mask])
+                lw = self.mseLoss(w[mask], tw[mask])
+                lh = self.mseLoss(h[mask], th[mask])
+                lcls = self.bceLoss(pred_cls[mask], tcls[mask])
+                # lconf = self.bceLoss2(pred_conf[tconf], tconf[tconf].to(dtype=pred_conf.dtype, device=pred_conf.device))
+                lconf = self.bceLoss(pred_conf[conf_mask], tconf[conf_mask].to(dtype=pred_conf.dtype, device=pred_conf.device))
+                # lcls = self.crossEntropyLoss(pred_cls[tconf], torch.argmax(tcls[tconf], 1))
+                
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, )]*6
 
-            lconf += nM * self.bceLoss1(pred_conf[~tconf], tconf[~tconf].to(dtype=pred_conf.dtype, device=pred_conf.device))
+            # lconf += nM * self.bceLoss1(pred_conf[~tconf], tconf[~tconf].to(dtype=pred_conf.dtype, device=pred_conf.device))
             # lconf = lconf / nM
 
             loss = lx + ly + lw + lh + lconf + lcls
