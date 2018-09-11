@@ -41,7 +41,16 @@ for i, (images, target) in enumerate(dataloader):
     print(images.shape, len(bboxes))
 
     loss = model(images, bboxes)
+
+    opt.zero_grad()
+    loss.backward()
+    opt.step()
+
     print(loss)
 
+    
+    if i == 5:
+        break
+    
 
 
