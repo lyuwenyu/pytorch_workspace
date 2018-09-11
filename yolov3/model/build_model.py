@@ -117,8 +117,6 @@ class YOLOLayer(nn.Module):
             self.grid_x = torch.arange(self.nG).repeat(self.nG, 1)
             self.grid_y = torch.arange(self.nG).repeat(self.nG, 1).t()
 
-        print(self.scaled_anchors.shape)
-
         self.mseLoss = nn.MSELoss(size_average=True)
         # self.crossEntropyLoss = nn.CrossEntropyLoss(size_average=True)
         self.bceLoss = nn.BCELoss(size_average=True)
@@ -188,14 +186,12 @@ class YOLOLayer(nn.Module):
                 # lcls = self.crossEntropyLoss(pred_cls[tconf], torch.argmax(tcls[tconf], 1))
                 
             else:
-                lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, )]*6
-
-            # lconf += nM * self.bceLoss1(pred_conf[~tconf], tconf[~tconf].to(dtype=pred_conf.dtype, device=pred_conf.device))
-            # lconf = lconf / nM
+                lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, )] * 6
 
             loss = lx + ly + lw + lh + lconf + lcls
+            print(loss.shape)
 
-        return loss 
+            return loss 
 
 
 #---
@@ -215,6 +211,10 @@ class DarkNet(nn.Module):
         outputs = []
 
         for _, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+
+            # print(x.shape)
+            # print(module)
+            # print()
 
             if module_def['type'] == 'convolutional':
                 x = module(x)
@@ -237,8 +237,9 @@ class DarkNet(nn.Module):
                 if target is None: # test phase)
                     x = module(x)
 
-                else: # training phase TODO
-                    pass
+                else: # training phase
+                    # print(module[0])
+                    x = module[0](x, target=target)  ### sequential
                 
                 outputs += [x]
             
@@ -249,7 +250,7 @@ class DarkNet(nn.Module):
             return torch.cat(outputs, dim=1)
 
         else:
-            pass
+            return sum(outputs)
 
 
     def load_weights(self, weights_path):
@@ -318,8 +319,7 @@ if __name__ == '__main__':
     # model.load_weights(weights_path=os.path.join(filedir, 'yolov3.weights'))
     torch.save(model.state_dict(), os.path.join(filedir, 'yolov3.torch'))
 
-
-
     tic = time.time()
     print(model(data).shape)
     print(time.time() - tic)
+
