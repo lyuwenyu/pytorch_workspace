@@ -181,9 +181,7 @@ class YOLOLayer(nn.Module):
                 lw = self.mseLoss(w[mask], tw[mask])
                 lh = self.mseLoss(h[mask], th[mask])
                 lcls = self.bceLoss(pred_cls[mask], tcls[mask])
-                # lconf = self.bceLoss2(pred_conf[tconf], tconf[tconf].to(dtype=pred_conf.dtype, device=pred_conf.device))
                 lconf = self.bceLoss(pred_conf[conf_mask], tconf[conf_mask].to(dtype=pred_conf.dtype, device=pred_conf.device))
-                # lcls = self.crossEntropyLoss(pred_cls[tconf], torch.argmax(tcls[tconf], 1))
                 
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, )] * 6
@@ -212,10 +210,6 @@ class DarkNet(nn.Module):
 
         for _, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
 
-            # print(x.shape)
-            # print(module)
-            # print()
-
             if module_def['type'] == 'convolutional':
                 x = module(x)
 
@@ -238,8 +232,7 @@ class DarkNet(nn.Module):
                     x = module(x)
 
                 else: # training phase
-                    # print(module[0])
-                    x = module[0](x, target=target)  ### sequential
+                    x = module[0](x, target=target)  ### module is sequential, not yolo
                 
                 outputs += [x]
             
