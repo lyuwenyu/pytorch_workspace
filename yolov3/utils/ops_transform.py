@@ -97,7 +97,6 @@ def pad_resize(img, bbox=None, size=None):
         # show_bbox(new_img, bbox, new_img.size)
 
         return new_img, bbox
-
     
     return new_img
 
@@ -112,6 +111,7 @@ def resize(img, bbox=None, size=None):
     img = img.resize(size)
 
     if bbox is not None:
+        bbox = np.array(bbox)
         bbox[:, 0] = bbox[:, 0] * scale_w
         bbox[:, 1] = bbox[:, 1] * scale_h
         bbox[:, 2] = bbox[:, 2] * scale_w
@@ -122,3 +122,6 @@ def resize(img, bbox=None, size=None):
     return img
 
 
+def bbox_iou(boxa, box2):
+    '''comput iou bettwen boxes'''
+    pass
