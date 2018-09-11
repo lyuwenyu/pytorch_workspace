@@ -53,7 +53,6 @@ img.show()
 
 
 
-
 img = Image.open(path)
 img, bboxes = pad_resize(img, np.array(blob['bboxes']), size=(512, 512))
 img, bboxes = flip_lr(img, bboxes)
