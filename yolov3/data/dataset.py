@@ -22,6 +22,14 @@ class Dataset(data.Dataset):
         root = '/home/wenyu/workspace/dataset/voc/VOCdevkit/VOC2007'
         self.img_root = os.path.join(root, 'JPEGImages')
         self.anns = glob.glob(os.path.join(root, 'Annotations', '*.xml'))
+        
+        with open('./data/voc.names', 'r') as f:
+            lines = f.readlines()
+            lines = [ll.strip() for ll in lines]
+            self.label_map = dict(zip(lines, range(len(lines))))
+            # print(self.label_map)
+
+        self.size = size
 
         self.totensor = transforms.ToTensor()
 
@@ -34,8 +42,8 @@ class Dataset(data.Dataset):
         filename = os.path.join(self.img_root, blob['filename'])
         bboxes = blob['bboxes']
         ngt = len(bboxes)
-        classes = blob['names']
-        assert len(classes) == ngt, ''
+        label = [self.label_map[n] for n in blob['names']] 
+        # assert len(label) == ngt, ''
 
         img = Image.open(filename)
 
@@ -45,18 +53,21 @@ class Dataset(data.Dataset):
         if random.random() < 0.5:
             img, bboxes = ops_transform.flip_tb(img, bboxes)
 
-        img, bboxes = ops_transform.pad_resize(img, bboxes, size=(512, 512))
-        bboxes = ops_transform.xyxy2xywh(bboxes, img.size)
+        if random.random() < 0.5:
+            img, bboxes = ops_transform.pad_resize(img, bboxes, size=(self.size, self.size))
+
+        img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
+
+        bboxes = ops_transform.xyxy2xywh(bboxes, img.size)     
+        # mask cls bbx
+        target_tensor = torch.zeros(50, 6)
+        target_tensor[:ngt, 2: ] = torch.from_numpy(bboxes)
+        target_tensor[:ngt, 1] = torch.tensor(label)
+        target_tensor[:ngt, 0] = 1
 
         img = self.totensor(img)
-
-        bboxes_tensor = torch.zeros(50, 5)
-        bboxes_tensor[:ngt, 1: ] = torch.from_numpy(bboxes)
-        bboxes_tensor[:ngt, 0] = 1
-
         
-
-        return img, bboxes_tensor
+        return img, target_tensor
 
 
 if __name__ == '__main__':
@@ -69,12 +80,16 @@ if __name__ == '__main__':
 
     for img, bboxes in dataloader:
 
-        _img = topil(img[2])
-        _bbox = bboxes[2]
-        _bbox = _bbox[_bbox[:, 0] > 0]
-        _bbox = _bbox[:, 1:]
+        # print(img.size(), bboxes.size())
 
-        show_bbox(_img, ops_transform.xywh2xyxy(_bbox, _img.size))
+        _img = topil(img[0])
+        _bboxes = bboxes[0]
+        _bboxes = _bboxes[_bboxes[:, 0] > 0]
+        _bbox = _bboxes[:, 2:]
+        _classes = _bboxes[:, 1]
 
-
-
+        # show_bbox(_img, ops_transform.xywh2xyxy(_bbox, _img.size), normalize=False)
+        # show_bbox(_img, _bbox, xyxy=False, normalize=True)
+        
+        print(_classes)
+        # break
