@@ -28,6 +28,6 @@ def parse_xml(path):
                 bbox =[float(x.text) for x in c.find('bndbox').getchildren()]
 
                 blob['names'] += [name]
-                blob['bboxes'] += [ bbox ]
+                blob['bboxes'] += [bbox]
 
     return blob
