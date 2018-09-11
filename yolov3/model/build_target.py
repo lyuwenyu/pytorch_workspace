@@ -120,8 +120,6 @@ def _build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, n
         if requestPrecision:
             pass
 
-    print(tcls.requires_grad)
-
     return tx, ty, tw, th, tconf, tcls, conf_mask
 
 
@@ -158,8 +156,8 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
         for t in range(nT[b]):
             # if target[b, t].sum() == 0:
             #     continue
+            # print(b, t)
 
-            print(b, t)
             nGt += 1
             
             tc = target[b][t, 0].long()
@@ -174,7 +172,7 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
             inter_area = torch.min(target[b][t, 3: ].view(1, 2), scaled_anchors).prod(1)
             iou_anchor = inter_area / (gw * gh + target[b][t, 3: ].prod() - inter_area + 1e-15)
 
-            conf_mask[b, iou_anchor > ignore_threshold] = 0
+            conf_mask[b, iou_anchor > ignore_threshold, gj, gi] = 0
             _, a = iou_anchor.max(0) # best anchor for target.
 
             tx[b, a, gj, gi] = gx - gi.float()

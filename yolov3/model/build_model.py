@@ -140,8 +140,8 @@ class YOLOLayer(nn.Module):
         height = torch.exp(h) * self.anchor_h.view(1, -1, 1, 1).to(dtype=h.dtype, device=h.device)
 
         pred_boxes = torch.zeros((bs, self.nA, nG, nG, 4)).to(dtype=p.dtype, device=p.device)
-        pred_conf = p[..., 4]
-        pred_cls = p[..., 5:]
+        pred_conf = torch.sigmoid(p[..., 4])
+        pred_cls = torch.sigmoid(p[..., 5:])
 
         if target is None: # inference phase
             pred_boxes[..., 0] = x + self.grid_x.to(dtype=x.dtype, device=x.device)
@@ -151,7 +151,7 @@ class YOLOLayer(nn.Module):
 
             out = torch.cat((
                 pred_boxes.view(bs, -1, 4) * stride,
-                torch.sigmoid(pred_conf).view(bs, -1, 1),
+                pred_conf.view(bs, -1, 1),
                 pred_cls.view(bs, -1, self.nC)),
                 dim=-1)
 
@@ -187,7 +187,7 @@ class YOLOLayer(nn.Module):
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, )] * 6
 
             loss = lx + ly + lw + lh + lconf + lcls
-            print(loss.shape)
+            # print(loss.shape)
 
             return loss 
 
