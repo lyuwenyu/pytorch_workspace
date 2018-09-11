@@ -1,5 +1,6 @@
 from PIL import Image
 import numpy as np
+from utils.ops_show_bbox import show_bbox
 
 
 def flip_lr(img, bbox=None):
@@ -10,6 +11,7 @@ def flip_lr(img, bbox=None):
     img = img.transpose(Image.FLIP_LEFT_RIGHT)
 
     if bbox is not None:
+        bbox = np.array(bbox)
         new_bbox = np.zeros_like(bbox)
         new_bbox[:, 0] = img.size[0] - bbox[:, 0] - (bbox[:, 2] - bbox[:, 0])
         new_bbox[:, 2] = img.size[0] - bbox[:, 2] + (bbox[:, 2] - bbox[:, 0])
@@ -29,6 +31,7 @@ def flip_tb(img, bbox=None):
     img = img.transpose(Image.FLIP_TOP_BOTTOM)
 
     if bbox is not None:
+        bbox = np.array(bbox)
         new_bbox = np.zeros_like(bbox)
         new_bbox[:, 1] = img.size[1] - bbox[:, 1] - (bbox[:, 3] - bbox[:, 1])
         new_bbox[:, 3] = img.size[1] - bbox[:, 3] + (bbox[:, 3] - bbox[:, 1])
@@ -53,7 +56,7 @@ def xyxy2xywh(bboxes, size):
     return new_bboxes
 
 
-def xyhw2xyxy(bboxes, size):
+def xywh2xyxy(bboxes, size):
     '''cx cy w h -> x1 y1 x2 y2'''
     new_bboxes = np.zeros_like(bboxes)
     new_bboxes[:, 0] = (bboxes[:, 0] - bboxes[:, 2] / 2) * size[0]
@@ -87,13 +90,15 @@ def pad_resize(img, bbox=None, size=None):
 
     if bbox is not None:
         bbox = np.array(bbox)
-        bbox[:, 0] = bbox[:, 0] * scale + pad[0]
-        bbox[:, 1] = bbox[:, 1] * scale + pad[1]
-        bbox[:, 2] = bbox[:, 2] * scale + pad[0]
-        bbox[:, 3] = bbox[:, 3] * scale + pad[1]
+        bbox[:, 0] = np.maximum(bbox[:, 0] * scale + pad[0], 0)
+        bbox[:, 1] = np.maximum(bbox[:, 1] * scale + pad[1], 0)
+        bbox[:, 2] = np.minimum(bbox[:, 2] * scale + pad[0], size[0] - 1)
+        bbox[:, 3] = np.minimum(bbox[:, 3] * scale + pad[1], size[1] - 1)
+        # show_bbox(new_img, bbox, new_img.size)
 
         return new_img, bbox
 
+    
     return new_img
 
 
