@@ -181,7 +181,7 @@ class YOLOLayer(nn.Module):
                 lw = self.mseLoss(w[mask], tw[mask])
                 lh = self.mseLoss(h[mask], th[mask])
                 lcls = self.bceLoss(pred_cls[mask], tcls[mask])
-                lconf = self.bceLoss(pred_conf[conf_mask], tconf[conf_mask].to(dtype=pred_conf.dtype, device=pred_conf.device))
+                lconf = self.bceLoss(pred_conf[conf_mask], tconf[conf_mask].to(dtype=pred_conf.dtype))
                 
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, )] * 6
