@@ -17,20 +17,24 @@ from utils.ops_show_bbox import show_bbox
 from utils import ops_transform
 
 class Dataset(data.Dataset):
-    def __init__(self, path, size=512, num_classes=20):
+    def __init__(self, annos_dir='', image_dir='', classes_path='', size=512, num_classes=20):
         
-        root = '/home/wenyu/workspace/dataset/voc/VOCdevkit/VOC2007'
-        self.img_root = os.path.join(root, 'JPEGImages')
-        self.anns = glob.glob(os.path.join(root, 'Annotations', '*.xml'))
+        # root = '/home/wenyu/workspace/dataset/voc/VOCdevkit/VOC2007'
+        # self.img_root = os.path.join(root, 'JPEGImages')
+        # self.anns = glob.glob(os.path.join(root, 'Annotations', '*.xml'))
         
-        with open('./data/voc.names', 'r') as f:
+        # with open('./data/voc.names', 'r') as f:
+        with open('./data/fisheye.names', 'r') as f:
+
             lines = f.readlines()
             lines = [ll.strip() for ll in lines]
             self.label_map = dict(zip(lines, range(len(lines))))
-            # print(self.label_map)
+
+        annos_dir = '/home/wenyu/workspace/dataset/fisheye/tc_20180816'
+        self.image_dir = annos_dir
+        self.anns = glob.glob(os.path.join(annos_dir, '*.xml'))
 
         self.size = size
-
         self.totensor = transforms.ToTensor()
 
     def __len__(self):
@@ -39,13 +43,13 @@ class Dataset(data.Dataset):
     def __getitem__(self, i):
         
         blob = parse_xml(self.anns[i])
-        filename = os.path.join(self.img_root, blob['filename'])
+        path = os.path.join(self.image_dir, blob['filename'])
         bboxes = blob['bboxes']
         ngt = len(bboxes)
         label = [self.label_map[n] for n in blob['names']] 
         # assert len(label) == ngt, ''
 
-        img = Image.open(filename)
+        img = Image.open(path)
 
         if random.random() < 0.5:
             img, bboxes = ops_transform.flip_lr(img, bboxes)
