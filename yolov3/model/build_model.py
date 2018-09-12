@@ -107,7 +107,7 @@ class YOLOLayer(nn.Module):
         self.nG = int(img_height / stride)
         self.stride = stride
 
-        self.scaled_anchors = (torch.tensor(anchors)/stride).to(torch.float32)        
+        self.scaled_anchors = (torch.tensor(anchors) / stride).to(torch.float32)        
         self.anchor_w = self.scaled_anchors[:, 0]
         self.anchor_h = self.scaled_anchors[:, 1]
 
