@@ -29,7 +29,6 @@ class Solver(object):
     def inference(self, ):
         pass
 
-    
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
@@ -37,10 +36,10 @@ model = DarkNet('./_model/yolov3.cfg', img_size=416)
 model.load_weights('./model/yolov3.weights')
 model = model.to(torch.device(device))
 
-opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.95)
+opt = optim.SGD(model.parameters(), lr=0.0001, momentum=0.95)
 
 dataset = Dataset('', size=416)
-dataloader = data.DataLoader(dataset, batch_size=10, num_workers=3)
+dataloader = data.DataLoader(dataset, batch_size=8, num_workers=3)
 
 
 def train(model, epoch=0):
@@ -69,8 +68,9 @@ def train(model, epoch=0):
 
         print('iter: {:0>5}, lr: {:0.5f}, loss: {:.5f}'.format(i, 0, loss.item()))
 
-        if i % 300 == 0:
+        if i % 5 == 0:
             torch.save(model.state_dict(), './output/ckpt-{:0>5}'.format(i))
         
 
-train(model)
+for e in range(100):
+    train(model, epoch=e)
