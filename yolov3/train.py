@@ -12,45 +12,65 @@ logger = logging.getLogger('train')
 
 
 class Solver(object):
-    pass
+    
+    def __init__(self, ):
+        self.model = DarkNet('./_model/yolov3.cfg', img_size=416)
+        self.model.load_weights('./model/yolov3.weights')
 
+    def set_target(self, ):
+        pass    
+    
+    def get_dataloader(self, ):
+        pass
 
+    def train(self, ):
+        pass
+    
+    def inference(self, ):
+        pass
+
+    
+
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 model = DarkNet('./_model/yolov3.cfg', img_size=416)
 model.load_weights('./model/yolov3.weights')
+model = model.to(torch.device(device))
 
 opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.95)
 
 dataset = Dataset('', size=416)
-dataloader = data.DataLoader(dataset, batch_size=3, num_workers=1)
+dataloader = data.DataLoader(dataset, batch_size=10, num_workers=3)
 
 
-model.train()
-for i, (images, target) in enumerate(dataloader):
+def train(model, epoch=0):
 
-    def get_target():
-        bboxes = []
-        for ii in range(target.shape[0]):
-            _target = target[ii]
-            _target = _target[_target[:, 0] > 0]
-            bboxes += [_target[:, 1:]]
-        return bboxes 
+    model.train()
+    for i, (images, target) in enumerate(dataloader):
 
-    bboxes = get_target()
+        images = images.to(torch.device(device))
+        target = target.to(torch.device(device))
 
-    print(images.shape, len(bboxes))
+        def get_target():
+            bboxes = []
+            for ii in range(target.shape[0]):
+                _target = target[ii]
+                _target = _target[_target[:, 0] > 0]
+                bboxes += [_target[:, 1:]]
+            return bboxes 
 
-    loss = model(images, bboxes)
+        bboxes = get_target()
 
-    opt.zero_grad()
-    loss.backward()
-    opt.step()
+        loss = model(images, bboxes)
 
-    print(loss)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
 
-    
-    if i == 5:
-        break
-    
+        print('iter: {:0>5}, lr: {:0.5f}, loss: {:.5f}'.format(i, 0, loss.item()))
 
+        if i % 300 == 0:
+            torch.save(model.state_dict(), './output/ckpt-{:0>5}'.format(i))
+        
 
+train(model)
