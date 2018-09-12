@@ -135,15 +135,15 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
     nT = [len(bs) for bs in target]
     maxnT = max(nT)
 
-    tx = torch.zeros(nB, nA, nG, nG)
-    ty = torch.zeros(nB, nA, nG, nG)
-    tw = torch.zeros(nB, nA, nG, nG)
-    th = torch.zeros(nB, nA, nG, nG)
+    tx = torch.zeros(nB, nA, nG, nG).to(device=pred_boxes.device)
+    ty = torch.zeros(nB, nA, nG, nG).to(device=pred_boxes.device)
+    tw = torch.zeros(nB, nA, nG, nG).to(device=pred_boxes.device)
+    th = torch.zeros(nB, nA, nG, nG).to(device=pred_boxes.device)
 
-    tcls = torch.zeros(nB, nA, nG, nG, nC) #.fill_(0)
-    tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0)
+    tcls = torch.zeros(nB, nA, nG, nG, nC).to(device=pred_boxes.device) #.fill_(0)
+    tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0).to(device=pred_boxes.device)
 
-    conf_mask = torch.ByteTensor(nB, nA, nG, nG).fill_(1)
+    conf_mask = torch.ByteTensor(nB, nA, nG, nG).fill_(1).to(device=pred_boxes.device)
 
     TP = torch.ByteTensor(nB, maxnT).fill_(0)
     FP = torch.ByteTensor(nB, maxnT).fill_(0)

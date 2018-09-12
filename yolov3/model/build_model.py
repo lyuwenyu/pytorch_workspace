@@ -141,7 +141,7 @@ class YOLOLayer(nn.Module):
 
         pred_boxes = torch.zeros((bs, self.nA, nG, nG, 4)).to(dtype=p.dtype, device=p.device)
         pred_conf = torch.sigmoid(p[..., 4])
-        pred_cls = torch.sigmoid(p[..., 5:])
+        pred_cls =  torch.sigmoid(p[..., 5:])
 
         if target is None: # inference phase
             pred_boxes[..., 0] = x + self.grid_x.to(dtype=x.dtype, device=x.device)
@@ -169,7 +169,7 @@ class YOLOLayer(nn.Module):
                                                             pred_conf, 
                                                             pred_cls, 
                                                             target, 
-                                                            self.scaled_anchors, 
+                                                            self.scaled_anchors.to(device=pred_boxes.device), 
                                                             self.nA, self.nC, self.nG,
                                                             requestPrecision)
             nM = tconf.sum().float()
