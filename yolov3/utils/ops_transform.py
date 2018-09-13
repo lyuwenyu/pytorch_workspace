@@ -1,7 +1,7 @@
 from PIL import Image
 import numpy as np
 from utils.ops_show_bbox import show_bbox
-
+from utils.ops_perpective import perspective_operation
 
 def flip_lr(img, bbox=None):
     '''
@@ -41,6 +41,42 @@ def flip_tb(img, bbox=None):
         return img, new_bbox
 
     return img
+
+
+def random_perspective(image, bbox, label, skew_type='RANDOM'):
+    '''
+    image: PIL.Image
+    bbox: box
+    label: box label
+    make sure bbox have its corresponding label, and one to one
+    '''
+    _img, M, _ = perspective_operation([image], magnitude=0.8, skew_type=skew_type)
+    bbx = np.array(bbox)
+    points = np.vstack([bbx[:, :2], bbx[:, 2:]])
+    points = np.hstack([points, np.ones((len(points), 1), dtype=np.float32)])
+    points = np.dot(points, M.T)
+    points[:, 0] = points[:, 0] / (points[:, -1] + 1e-10)
+    points[:, 1] = points[:, 1] / (points[:, -1] + 1e-10)
+    points = np.hstack([points[:int(len(points)/2), :2], points[int(len(points)/2):, :2]])
+    
+    points[:, 0] = np.minimum(np.maximum(0, points[:, 0]), _img.size[0] - 1)
+    points[:, 1] = np.minimum(np.maximum(0, points[:, 1]), _img.size[1] - 1)
+    points[:, 2] = np.minimum(np.maximum(0, points[:, 2]), _img.size[0] - 1)
+    points[:, 3] = np.minimum(np.maximum(0, points[:, 3]), _img.size[1] - 1)
+    
+    areas = (points[:, 3] - points[:, 1]) * (points[:, 2] - points[:, 0])
+    index = np.where(areas > 200)[0]
+    if len(index) == 0:
+        print('no objects...')
+        # return None, None
+        return image, bbox, label
+        
+    label = [label[i] for i in index]
+    points = points[index]
+
+    assert len(label) == len(points)
+
+    return _img, points, label
 
 
 def xyxy2xywh(bboxes, size):
@@ -122,6 +158,14 @@ def resize(img, bbox=None, size=None):
     return img
 
 
-def bbox_iou(boxa, box2):
+def bbox_iou(boxa, boxb):
     '''comput iou bettwen boxes'''
     pass
+
+
+
+def crop(img, bbox, label):
+    '''crop
+    '''
+    pass
+    
