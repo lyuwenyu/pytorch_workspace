@@ -9,3 +9,5 @@
 RA-CNN/
 *.weights
 *.torch
+ckpt-*
+*.json
