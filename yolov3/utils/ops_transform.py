@@ -3,7 +3,7 @@ import numpy as np
 from utils.ops_show_bbox import show_bbox
 from utils.ops_perpective import perspective_operation
 
-
+# coor transform
 def xyxy2xywh(bboxes, size=None):
     ''' x1 y1 x2 y2 -> cx cy w h '''
     assert isinstance(bboxes, np.ndarray), 'boxes should be ndarray.'
@@ -15,8 +15,8 @@ def xyxy2xywh(bboxes, size=None):
     new_bboxes[:, 3] = (bboxes[:, 3] - bboxes[:, 1])
 
     if size is not None: # nomalize
-        new_bboxes[:, [0, 2]] /= size[:, 0]
-        new_bboxes[:, [1, 3]] /= size[:, 1]
+        new_bboxes[:, [0, 2]] /= size[0]
+        new_bboxes[:, [1, 3]] /= size[1]
 
     return new_bboxes
 
@@ -37,7 +37,7 @@ def xywh2xyxy(bboxes, size=None):
 
     return new_bboxes
 
-
+# image and bbox transform
 def flip_lr(img, bbox=None):
     '''
     img: PIL
