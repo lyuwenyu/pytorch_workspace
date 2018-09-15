@@ -7,46 +7,17 @@ from data.dataset import Dataset
 from model.build_model import DarkNet
 
 import logging
-
 logger = logging.getLogger('train')
 
-
-class Solver(object):
-    
-    def __init__(self, ):
-        self.model = DarkNet('./_model/yolov3.cfg', img_size=416)
-        self.model.load_weights('./model/yolov3.weights')
-
-    def set_target(self, ):
-        pass    
-    
-    def get_dataloader(self, ):
-        pass
-
-    def train(self, ):
-        pass
-    
-    def inference(self, ):
-        pass
-
-
+import argparse
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-model = DarkNet('./_model/yolov3.cfg', img_size=416)
-model.load_weights('./model/yolov3.weights')
-model = model.to(torch.device(device))
 
-opt = optim.SGD(model.parameters(), lr=0.0001, momentum=0.95)
-
-dataset = Dataset('', size=416)
-dataloader = data.DataLoader(dataset, batch_size=8, num_workers=3)
-
-
-def train(model, epoch=0):
+def train(model, dataloader, optimizer, epoch=0):
 
     model.train()
-    for i, (images, target) in enumerate(dataloader):
 
+    for i, (images, target) in enumerate(dataloader):
         images = images.to(torch.device(device))
         target = target.to(torch.device(device))
 
@@ -62,15 +33,35 @@ def train(model, epoch=0):
 
         loss = model(images, bboxes)
 
-        opt.zero_grad()
+        optimizer.zero_grad()
         loss.backward()
-        opt.step()
+        optimizer.step()
 
-        print('iter: {:0>5}, lr: {:0.5f}, loss: {:.5f}'.format(i, 0, loss.item()))
+        print('iter: {:0>5}, lr: {:0.10f}, loss: {:.5f}'.format(i, optimizer.param_groups[0]['lr'], loss.item()))
 
-        if i % 5 == 0:
-            torch.save(model.state_dict(), './output/ckpt-{:0>5}'.format(i))
-        
+    if e % 10 == 0:
+        torch.save(model.state_dict(), './output/ckpt-epoch-{:0>5}'.format(epoch))
 
-for e in range(100):
-    train(model, epoch=e)
+
+def validate(model, dataloader, epoch=0):
+    model.eval()
+    pass
+
+
+if __name__ == '__main__':
+
+    dataset = Dataset('', size=416)
+    dataloader = data.DataLoader(dataset, batch_size=8, num_workers=3)
+
+    model = DarkNet('./_model/yolov3.cfg', img_size=416)
+    model.load_weights('./model/yolov3.weights')
+    model = model.to(torch.device(device))
+
+    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.95)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    
+    for e in range(100):
+
+        scheduler.step()
+        train(model, dataloader, optimizer, epoch=e)
+        validate(model, dataloader, epoch=e)
