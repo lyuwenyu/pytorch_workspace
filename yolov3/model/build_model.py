@@ -150,8 +150,8 @@ class YOLOLayer(nn.Module):
             pred_boxes[..., 3] = height
 
             out = torch.cat((
-                pred_boxes.view(bs, -1, 4) * stride,
                 pred_conf.view(bs, -1, 1),
+                pred_boxes.view(bs, -1, 4) * stride,
                 pred_cls.view(bs, -1, self.nC)),
                 dim=-1)
 
