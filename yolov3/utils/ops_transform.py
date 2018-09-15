@@ -3,6 +3,41 @@ import numpy as np
 from utils.ops_show_bbox import show_bbox
 from utils.ops_perpective import perspective_operation
 
+
+def xyxy2xywh(bboxes, size=None):
+    ''' x1 y1 x2 y2 -> cx cy w h '''
+    assert isinstance(bboxes, np.ndarray), 'boxes should be ndarray.'
+
+    new_bboxes = np.zeros_like(bboxes)  # bboxes.copy() # copy.deepcopy(bboxes)
+    new_bboxes[:, 0] = (bboxes[:, 0] + bboxes[:, 2]) / 2 
+    new_bboxes[:, 1] = (bboxes[:, 1] + bboxes[:, 3]) / 2
+    new_bboxes[:, 2] = (bboxes[:, 2] - bboxes[:, 0])
+    new_bboxes[:, 3] = (bboxes[:, 3] - bboxes[:, 1])
+
+    if size is not None: # nomalize
+        new_bboxes[:, [0, 2]] /= size[:, 0]
+        new_bboxes[:, [1, 3]] /= size[:, 1]
+
+    return new_bboxes
+
+
+def xywh2xyxy(bboxes, size=None):
+    '''cx cy w h -> x1 y1 x2 y2'''
+    assert isinstance(bboxes, np.ndarray), 'boxes should be ndarray.'
+
+    new_bboxes = np.zeros_like(bboxes)
+    new_bboxes[:, 0] = bboxes[:, 0] - bboxes[:, 2] / 2
+    new_bboxes[:, 1] = bboxes[:, 1] - bboxes[:, 3] / 2
+    new_bboxes[:, 2] = bboxes[:, 0] + bboxes[:, 2] / 2
+    new_bboxes[:, 3] = bboxes[:, 1] + bboxes[:, 3] / 2
+
+    if size is not None: # reverse normalize
+        new_bboxes[:, [0, 2]] *= size[0]
+        new_bboxes[:, [1, 3]] *= size[1]
+
+    return new_bboxes
+
+
 def flip_lr(img, bbox=None):
     '''
     img: PIL
@@ -79,30 +114,6 @@ def random_perspective(image, bbox, label, skew_type='RANDOM'):
     return _img, points, label
 
 
-def xyxy2xywh(bboxes, size):
-    ''' x1 y1 x2 y2 -> cx cy w h '''
-    assert isinstance(bboxes, np.ndarray), 'boxes should be ndarray.'
-
-    new_bboxes = np.zeros_like(bboxes)  # bboxes.copy() # copy.deepcopy(bboxes)
-    new_bboxes[:, 0] = (bboxes[:, 0] + bboxes[:, 2]) / 2 / size[0]
-    new_bboxes[:, 1] = (bboxes[:, 1] + bboxes[:, 3]) / 2 / size[1]
-    new_bboxes[:, 2] = (bboxes[:, 2] - bboxes[:, 0]) / size[0]
-    new_bboxes[:, 3] = (bboxes[:, 3] - bboxes[:, 1]) / size[1]
-
-    return new_bboxes
-
-
-def xywh2xyxy(bboxes, size):
-    '''cx cy w h -> x1 y1 x2 y2'''
-    new_bboxes = np.zeros_like(bboxes)
-    new_bboxes[:, 0] = (bboxes[:, 0] - bboxes[:, 2] / 2) * size[0]
-    new_bboxes[:, 1] = (bboxes[:, 1] - bboxes[:, 3] / 2) * size[1]
-    new_bboxes[:, 2] = (bboxes[:, 0] + bboxes[:, 2] / 2) * size[0]
-    new_bboxes[:, 3] = (bboxes[:, 1] + bboxes[:, 3] / 2) * size[1]
-
-    return new_bboxes
-
-
 def pad_resize(img, bbox=None, size=None):
     '''
     pad and resize image and corresponding bbox
@@ -163,8 +174,7 @@ def bbox_iou(boxa, boxb):
     pass
 
 
-
-def crop(img, bbox, label):
+def random_crop(img, bbox, label):
     '''crop
     '''
     pass
