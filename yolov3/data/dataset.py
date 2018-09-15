@@ -84,6 +84,10 @@ class Dataset(data.Dataset):
         if random.random() < 0.5:
             img, bboxes, label = ops_transform.random_perspective(img, bboxes, label)
 
+        if random.random() < 0.5:
+            # ops_transform.crop()
+            pass
+
         img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
 
         # here to yolo bbox type
