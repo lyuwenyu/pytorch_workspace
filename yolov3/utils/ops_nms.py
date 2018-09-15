@@ -41,7 +41,7 @@ def NMS(dets, objectness_threshold=0., iou_threshold=0.,):
     '''
 
     dets = dets[dets[:, 0] > objectness_threshold]
-    if len(dets) == 0: return []
+    if len(dets) == 0: return {}
 
     pred_bboxes = dets[:, 1: 5]
     pred_classes = np.argmax(dets[:, 5:], axis=1)
@@ -72,3 +72,7 @@ def NMS(dets, objectness_threshold=0., iou_threshold=0.,):
         result[i] = [_dets_i_bboxes, _dets_i_scores]
 
     return result
+
+
+def soft_nms():
+    pass
