@@ -40,7 +40,6 @@ class Dataset(data.Dataset):
         annos_dir = '/home/wenyu/workspace/dataset/fisheye/tc_20180816'
         self.image_dir = annos_dir
         self.anns = glob.glob(os.path.join(annos_dir, '*.xml'))
-
         self.max_n = 50
 
     def _set_voc_dataset(self, ):
@@ -58,6 +57,27 @@ class Dataset(data.Dataset):
     def __len__(self):
         return len(self.anns)
     
+
+    def _agumentation(self, img, bboxes, labels):
+        '''_agumentation '''
+        if random.random() < 0.5:
+            img, bboxes = ops_transform.flip_lr(img, bboxes)
+
+        # if random.random() < 0.1:
+        #     img, bboxes = ops_transform.flip_tb(img, bboxes)
+        
+        if random.random() < 0.2:
+            img, bboxes = ops_transform.pad_resize(img, bboxes)
+
+        if random.random() < 0.5:
+            img, bboxes, labels = ops_transform.random_perspective(img, bboxes, labels)
+
+        if random.random() < 0.5:
+            img, bboxes, labels = ops_transform.random_crop(img, bboxes, labels)
+
+        return img, bboxes, labels
+
+
     def __getitem__(self, i):
         '''
         return:
@@ -67,26 +87,13 @@ class Dataset(data.Dataset):
         blob = parse_xml(self.anns[i])
         path = os.path.join(self.image_dir, blob['filename'])
 
-        bboxes = blob['bboxes']
-        label = [self.label_map[n] for n in blob['names']] 
+        bboxes = np.array(blob['bboxes'])
+        labels = np.array([self.label_map[n] for n in blob['names']])
+
         img = Image.open(path)
-        # ngt = len(bboxes)
-        
-        if random.random() < 0.5:
-            img, bboxes = ops_transform.flip_lr(img, bboxes)
 
-        if random.random() < 0.2:
-            img, bboxes = ops_transform.flip_tb(img, bboxes)
-
-        if random.random() < 0.5:
-            img, bboxes = ops_transform.pad_resize(img, bboxes, size=(self.size, self.size))
-
-        if random.random() < 0.5:
-            img, bboxes, label = ops_transform.random_perspective(img, bboxes, label)
-
-        if random.random() < 0.5:
-            # ops_transform.crop()
-            pass
+        if random.random() < 0.8:
+            img, bboxes, labels = self._agumentation(img, bboxes, labels)
 
         img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
 
@@ -97,14 +104,14 @@ class Dataset(data.Dataset):
         ngt = len(bboxes)
         target_tensor = torch.zeros(self.max_n, 6)
         target_tensor[:ngt, 2: ] = torch.from_numpy(bboxes)
-        target_tensor[:ngt, 1] = torch.tensor(label)
+        target_tensor[:ngt, 1] = torch.tensor(labels)
         target_tensor[:ngt, 0] = 1
 
         img = self.totensor(img)
         
         return img, target_tensor
 
-
+    
 if __name__ == '__main__':
     
 
@@ -116,5 +123,3 @@ if __name__ == '__main__':
     for img, bboxes in dataloader:
 
         show_tensor_bbox(img[0], bboxes[0])
-
-        break
