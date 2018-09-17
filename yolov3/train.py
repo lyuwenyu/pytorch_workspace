@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 
+import random
+
 from data.dataset import Dataset
 from model.build_model import DarkNet
 
@@ -37,7 +39,7 @@ def train(model, dataloader, optimizer, epoch=0):
         loss.backward()
         optimizer.step()
 
-        print('iter: {:0>5}, lr: {:0.10f}, loss: {:.5f}'.format(i, optimizer.param_groups[0]['lr'], loss.item()))
+        print('epoch/iter: {:0>3}/{:0>4}, lr: {:0.8f}, loss: {:.5f}'.format(e, i, optimizer.param_groups[0]['lr'], loss.item()))
 
     if e % 10 == 0:
         torch.save(model.state_dict(), './output/ckpt-epoch-{:0>5}'.format(epoch))
@@ -50,18 +52,29 @@ def validate(model, dataloader, epoch=0):
 
 if __name__ == '__main__':
 
-    dataset = Dataset('', size=416)
-    dataloader = data.DataLoader(dataset, batch_size=8, num_workers=3)
+    dataset = Dataset('', size=320)
+    dataloader = data.DataLoader(dataset, batch_size=16, num_workers=3)
 
-    model = DarkNet('./_model/yolov3.cfg', img_size=416)
+    # datasets = [Dataset('', size=sz) for sz in [256, 320, 416]]
+    # dataloaders = [data.DataLoader(d, batch_size=bs, shuffle=True, num_workers=3) for d, bs in zip(datasets, [10, 16, 24])]
+
+    model = DarkNet('./_model/yolov3.cfg', img_size=320)
     model.load_weights('./model/yolov3.weights')
     model = model.to(torch.device(device))
 
-    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.95)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
-    
-    for e in range(100):
+    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.99)
+    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 60, 80], gamma=0.1)
+
+    for e in range(int(102 / 1)):
 
         scheduler.step()
+
+        # random.shuffle(dataloaders)
+        # for i, dtloader in enumerate(dataloaders):
+        #     train(model, dtloader, optimizer, epoch=e * 3 + i)
+
         train(model, dataloader, optimizer, epoch=e)
-        validate(model, dataloader, epoch=e)
+        
+        # validate(model, dataloader, epoch=e)
+
