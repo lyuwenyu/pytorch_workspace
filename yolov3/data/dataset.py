@@ -20,8 +20,7 @@ from utils import ops_transform
 class Dataset(data.Dataset):
     def __init__(self, annos_dir='', image_dir='', classes_path='', size=512, num_classes=20):
         
-
-        self._set_costum_dataset()
+        self._set_voc_dataset()
 
         self.size = size
         self.totensor = transforms.ToTensor()
@@ -48,15 +47,17 @@ class Dataset(data.Dataset):
         self.image_dir
         self.label_map
         '''
-        # root = '/home/wenyu/workspace/dataset/voc/VOCdevkit/VOC2007'
-        # self.img_root = os.path.join(root, 'JPEGImages')
-        # self.anns = glob.glob(os.path.join(root, 'Annotations', '*.xml'))
-        # with open('./data/voc.names', 'r') as f:
-
+        root = '/home/wenyu/workspace/dataset/voc/VOCdevkit/VOC2007'
+        self.image_dir = os.path.join(root, 'JPEGImages')
+        self.anns = glob.glob(os.path.join(root, 'Annotations', '*.xml'))
+        self.max_n = 50
+        with open('./data/voc.names', 'r') as f:
+            lines = f.readlines()
+            lines = [ll.strip() for ll in lines]
+            self.label_map = dict(zip(lines, range(len(lines))))
 
     def __len__(self):
         return len(self.anns)
-    
 
     def _agumentation(self, img, bboxes, labels):
         '''_agumentation '''
@@ -66,17 +67,19 @@ class Dataset(data.Dataset):
         # if random.random() < 0.1:
         #     img, bboxes = ops_transform.flip_tb(img, bboxes)
         
-        if random.random() < 0.2:
-            img, bboxes = ops_transform.pad_resize(img, bboxes)
+        if random.random() < 0.5:
+            img, bboxes = ops_transform.pad_resize(img, bboxes, size=(512, 512))
 
         if random.random() < 0.5:
             img, bboxes, labels = ops_transform.random_perspective(img, bboxes, labels)
 
-        if random.random() < 0.5:
+        if random.random() < 0.4:
             img, bboxes, labels = ops_transform.random_crop(img, bboxes, labels)
 
+        if random.random() < 0.5:
+            pass
+            
         return img, bboxes, labels
-
 
     def __getitem__(self, i):
         '''
@@ -92,7 +95,7 @@ class Dataset(data.Dataset):
 
         img = Image.open(path)
 
-        if random.random() < 0.8:
+        if random.random() < 0.9:
             img, bboxes, labels = self._agumentation(img, bboxes, labels)
 
         img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
@@ -107,6 +110,7 @@ class Dataset(data.Dataset):
         target_tensor[:ngt, 1] = torch.tensor(labels)
         target_tensor[:ngt, 0] = 1
 
+        # print(labels)
         img = self.totensor(img)
         
         return img, target_tensor
@@ -116,10 +120,17 @@ if __name__ == '__main__':
     
 
     dataset = Dataset('')
-    dataloader = data.DataLoader(dataset, batch_size=3, shuffle=True, num_workers=2) 
+    dataloader = data.DataLoader(dataset, batch_size=100, shuffle=True, num_workers=6) 
     
     topil = transforms.ToPILImage()
 
-    for img, bboxes in dataloader:
+    print(len(dataloader))
 
-        show_tensor_bbox(img[0], bboxes[0])
+    for _ in range(100):
+        for i, (img, bboxes) in enumerate(dataloader):
+
+            if i in (10, 20, 30, 40):
+                show_tensor_bbox(img[0], bboxes[0])
+            
+        break
+    
