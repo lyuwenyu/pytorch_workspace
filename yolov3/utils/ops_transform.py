@@ -1,7 +1,12 @@
 from PIL import Image
 import numpy as np
+import math
+import random
+
 from utils.ops_show_bbox import show_bbox
 from utils.ops_perpective import perspective_operation
+
+from shapely import geometry
 
 # coor transform
 def xyxy2xywh(bboxes, size=None):
@@ -159,10 +164,12 @@ def resize(img, bbox=None, size=None):
 
     if bbox is not None:
         bbox = np.array(bbox)
-        bbox[:, 0] = bbox[:, 0] * scale_w
-        bbox[:, 1] = bbox[:, 1] * scale_h
-        bbox[:, 2] = bbox[:, 2] * scale_w
-        bbox[:, 3] = bbox[:, 3] * scale_h
+        # bbox[:, 0] = bbox[:, 0] * scale_w
+        # bbox[:, 1] = bbox[:, 1] * scale_h
+        # bbox[:, 2] = bbox[:, 2] * scale_w
+        # bbox[:, 3] = bbox[:, 3] * scale_h
+        bbox[:, [0, 2]] *= scale_w
+        bbox[:, [1, 3]] *= scale_h
 
         return img, bbox
 
@@ -177,5 +184,71 @@ def bbox_iou(boxa, boxb):
 def random_crop(img, bbox, label):
     '''crop
     '''
-    pass
+    size_range = 0.1, 1.0
+    aspect_range = 0.5, 2.0
+
+    bbox = np.array(bbox)
+    w, h = img.size
+    
+    # show_bbox(img, bbox)
+    def sample_wh():
+        '''sample w h'''
+        size_ratio = np.arange(size_range[0], size_range[1], step=0.1)
+        aspect_ratio = np.arange(aspect_range[0], aspect_range[1], step=0.1)
+
+        sratio = np.random.choice(size_ratio, p=[1. / len(size_ratio)] * len(size_ratio))
+        aratio = np.random.choice(aspect_ratio, p=[1. / len(aspect_ratio)] * len(aspect_ratio))
+
+        nw = math.sqrt(sratio * aratio * w * h)
+        nh = nw / (aratio + 1e-15)
+        
+        nw, nh = min(nw, w), min(nh, h)
+
+        while True:
+            try:
+                assert(size_range[0] <= nw * nh / (w * h) <= size_range[1]), 'aspect ration should in range [0.5, 2.0]'
+                assert(aspect_range[0] <= nw / nh <= aspect_range[1]), 'size ration should be in range [0.1, 1.0]'
+                break
+            except:
+                nw, nh = sample_wh()
+
+        return nw, nh
+
+    nw, nh = sample_wh()
+
+    x1 = random.randint(0, int(w - nw))
+    y1 = random.randint(0, int(h - nh))
+    crop_area = (x1, y1, nw + x1, nh + y1)
+
+    new_img = img.crop(crop_area)
+    new_bbox, new_label = [], []
+
+    for ii, bb in enumerate(bbox): # center is (x1 + x2) / 2, is plus, not minus 
+        if crop_area[0] < (bb[2] + bb[0]) / 2. < crop_area[2] and \
+            crop_area[1] < (bb[3] + bb[1]) / 2. < crop_area[3]: # bbox cent in crop area
+            
+            nx1 = max(bb[0] - crop_area[0], 0)
+            ny1 = max(bb[1] - crop_area[1], 0)
+            nx2 = min(bb[2] - crop_area[0], nw - 1)
+            ny2 = min(bb[3] - crop_area[1], nh - 1)
+
+            if (nx2 - nx1) < 10 or \
+                (ny2 - ny1) < 10 or \
+                (nx2 - nx1) * (ny2 - ny1) < 400:
+                continue
+                
+            new_bbox += [[nx1, ny1, nx2, ny2], ]
+            new_label += [label[ii]]
+
+    new_bbox = np.array(new_bbox)
+    new_label = np.array(new_label)
+
+    if len(new_bbox) == 0:
+        print('no object...')
+        return img, bbox, label
+
+    # show_bbox(new_img, new_bbox)
+
+    return new_img, new_bbox, new_label
+
     
