@@ -42,6 +42,7 @@ def xywh2xyxy(bboxes, size=None):
 
     return new_bboxes
 
+
 # image and bbox transform
 def flip_lr(img, bbox=None):
     '''
@@ -83,14 +84,14 @@ def flip_tb(img, bbox=None):
     return img
 
 
-def random_perspective(image, bbox, label, skew_type='RANDOM'):
+def random_perspective(image, bbox, label, magnitude=0.5, skew_type='RANDOM'):
     '''
     image: PIL.Image
     bbox: box
     label: box label
     make sure bbox have its corresponding label, and one to one
     '''
-    _img, M, _ = perspective_operation([image], magnitude=0.8, skew_type=skew_type)
+    _img, M, _ = perspective_operation([image], magnitude=magnitude, skew_type=skew_type)
     bbx = np.array(bbox)
     points = np.vstack([bbx[:, :2], bbx[:, 2:]])
     points = np.hstack([points, np.ones((len(points), 1), dtype=np.float32)])
@@ -103,17 +104,25 @@ def random_perspective(image, bbox, label, skew_type='RANDOM'):
     points[:, 1] = np.minimum(np.maximum(0, points[:, 1]), _img.size[1] - 1)
     points[:, 2] = np.minimum(np.maximum(0, points[:, 2]), _img.size[0] - 1)
     points[:, 3] = np.minimum(np.maximum(0, points[:, 3]), _img.size[1] - 1)
-    
     areas = (points[:, 3] - points[:, 1]) * (points[:, 2] - points[:, 0])
-    index = np.where(areas > 200)[0]
+
+    # filter some bed bboxes
+    index = []
+    for ii, (pt, area) in enumerate(zip(points, areas)):
+        if pt[2] - pt[0] < 20 or \
+            pt[3] - pt[1] < 20 or \
+            area < 500:
+            continue
+        else:
+            index += [ii]
+    index = np.array(index)
+
     if len(index) == 0:
         print('no objects...')
-        # return None, None
         return image, bbox, label
         
-    label = [label[i] for i in index]
+    label = np.array([label[i] for i in index])
     points = points[index]
-
     assert len(label) == len(points)
 
     return _img, points, label
@@ -232,8 +241,8 @@ def random_crop(img, bbox, label):
             nx2 = min(bb[2] - crop_area[0], nw - 1)
             ny2 = min(bb[3] - crop_area[1], nh - 1)
 
-            if (nx2 - nx1) < 10 or \
-                (ny2 - ny1) < 10 or \
+            if (nx2 - nx1) < 20 or \
+                (ny2 - ny1) < 20 or \
                 (nx2 - nx1) * (ny2 - ny1) < 400:
                 continue
                 
@@ -252,3 +261,4 @@ def random_crop(img, bbox, label):
     return new_img, new_bbox, new_label
 
     
+# photo-metric distortion
