@@ -14,6 +14,7 @@ from utils.ops_parse_xml import parse_xml
 from utils.ops_pad_resize import pad_resize
 from utils.ops_show_bbox import show_bbox
 from utils.ops_show_bbox import show_tensor_bbox
+from utils.ops_augmentor import ImagePipeline
 
 from utils import ops_transform
 
@@ -21,6 +22,7 @@ class Dataset(data.Dataset):
     def __init__(self, annos_dir='', image_dir='', classes_path='', size=512, num_classes=20):
         
         self._set_voc_dataset()
+        self._set_pipeline()
 
         self.size = size
         self.totensor = transforms.ToTensor()
@@ -55,31 +57,35 @@ class Dataset(data.Dataset):
             lines = f.readlines()
             lines = [ll.strip() for ll in lines]
             self.label_map = dict(zip(lines, range(len(lines))))
+    
+    def _set_pipeline(self, ):
+        '''augmentor'''
+        self.pipeline = ImagePipeline()
+        self.pipeline.random_brightness(probability=0.5, min_factor=0.5, max_factor=1.2)
+        self.pipeline.random_distortion(probability=0.5, grid_height=20, grid_width=20, magnitude=1.0)
+        self.pipeline.random_color(probability=0.5, min_factor=0.5, max_factor=1.5)
+        self.pipeline.random_contrast(probability=0.5, min_factor=0.5, max_factor=1.5)
 
-    def __len__(self):
-        return len(self.anns)
-
-    def _agumentation(self, img, bboxes, labels):
+    def agumentation(self, img, bboxes, labels):
         '''_agumentation '''
         if random.random() < 0.5:
             img, bboxes = ops_transform.flip_lr(img, bboxes)
 
-        # if random.random() < 0.1:
-        #     img, bboxes = ops_transform.flip_tb(img, bboxes)
-        
         if random.random() < 0.5:
             img, bboxes = ops_transform.pad_resize(img, bboxes, size=(512, 512))
 
         if random.random() < 0.5:
             img, bboxes, labels = ops_transform.random_perspective(img, bboxes, labels)
 
-        if random.random() < 0.4:
+        if random.random() < 0.5:
             img, bboxes, labels = ops_transform.random_crop(img, bboxes, labels)
 
-        if random.random() < 0.5:
-            pass
+        img = self.pipeline.transform(img)
             
         return img, bboxes, labels
+
+    def __len__(self):
+        return len(self.anns)
 
     def __getitem__(self, i):
         '''
@@ -96,9 +102,9 @@ class Dataset(data.Dataset):
         img = Image.open(path)
 
         if random.random() < 0.9:
-            img, bboxes, labels = self._agumentation(img, bboxes, labels)
+            img, bboxes, labels = self.agumentation(img, bboxes, labels)
 
-        img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
+        img, bboxes = ops_transform.pad_resize(img, bboxes, size=(self.size, self.size))
 
         # here to yolo bbox type
         bboxes = ops_transform.xyxy2xywh(bboxes, img.size)  
