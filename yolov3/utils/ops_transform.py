@@ -6,7 +6,9 @@ import random
 from utils.ops_show_bbox import show_bbox
 from utils.ops_perpective import perspective_operation
 
+from utils import ops_augmentor
 from shapely import geometry
+import Augmentor
 
 # coor transform
 def xyxy2xywh(bboxes, size=None):
@@ -118,7 +120,7 @@ def random_perspective(image, bbox, label, magnitude=0.5, skew_type='RANDOM'):
     index = np.array(index)
 
     if len(index) == 0:
-        print('no objects...')
+        # print('no objects in perspective skew...')
         return image, bbox, label
         
     label = np.array([label[i] for i in index])
@@ -193,7 +195,7 @@ def bbox_iou(boxa, boxb):
 def random_crop(img, bbox, label):
     '''crop
     '''
-    size_range = 0.1, 1.0
+    size_range = 0.2, 1.0
     aspect_range = 0.5, 2.0
 
     bbox = np.array(bbox)
@@ -253,7 +255,7 @@ def random_crop(img, bbox, label):
     new_label = np.array(new_label)
 
     if len(new_bbox) == 0:
-        print('no object...')
+        # print('no object in crop area...')
         return img, bbox, label
 
     # show_bbox(new_img, new_bbox)
