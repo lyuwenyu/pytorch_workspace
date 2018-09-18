@@ -71,8 +71,8 @@ class Dataset(data.Dataset):
         if random.random() < 0.5:
             img, bboxes = ops_transform.flip_lr(img, bboxes)
 
-        if random.random() < 0.5:
-            img, bboxes = ops_transform.pad_resize(img, bboxes, size=(512, 512))
+        # if random.random() < 0.5:
+        #     img, bboxes = ops_transform.pad_resize(img, bboxes, size=(512, 512))
 
         if random.random() < 0.5:
             img, bboxes, labels = ops_transform.random_perspective(img, bboxes, labels)
@@ -104,7 +104,10 @@ class Dataset(data.Dataset):
         if random.random() < 0.9:
             img, bboxes, labels = self.agumentation(img, bboxes, labels)
 
-        img, bboxes = ops_transform.pad_resize(img, bboxes, size=(self.size, self.size))
+        if random.random() < 0.5:
+            img, bboxes = ops_transform.pad_resize(img, bboxes, size=(self.size, self.size))
+        else:
+            img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
 
         # here to yolo bbox type
         bboxes = ops_transform.xyxy2xywh(bboxes, img.size)  
