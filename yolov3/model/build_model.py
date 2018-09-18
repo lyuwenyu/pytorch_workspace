@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from collections import OrderedDict
+
 filedir = os.path.dirname(os.path.abspath(__file__))
 path = os.path.join(filedir, '..', 'utils')
 sys.path.insert(0, path)
@@ -17,7 +19,7 @@ from build_target import build_target, _build_target
 
 VERSION = torch.__version__
 
-def create_model(model_defs):
+def create_model(model_defs, cls_num, img_dim=None):
     '''
     '''
     hyperparameter = model_defs.pop(0)
@@ -69,11 +71,25 @@ def create_model(model_defs):
             anchors = [(anchors[j], anchors[j+1]) for j in range(0, len(anchors), 2)]
             anchors = [anchors[j] for j in anchor_index]
 
-            num_classes = int(defs['classes'])
-            img_height = int(hyperparameter['height'])
+            if cls_num is not None:
+                num_classes = cls_num
+            else:
+                num_classes = int(defs['classes'])
 
-            yolo_layer = YOLOLayer(anchors, num_classes, img_height, anchor_index)
+            yolo_layer = YOLOLayer(anchors, num_classes, anchor_index, img_dim)
             module.add_module(f'yolo_{i}', yolo_layer)
+
+            # 
+            for n, m in module_list[-1].named_children():
+                name = n
+                kernel_size = m.kernel_size
+                stride = m.stride
+                in_channels = m.in_channels
+            
+            _m = nn.Conv2d(in_channels, (num_classes + 5) * len(anchors), kernel_size, stride)
+            del module_list[-1] # __delitem__
+            module_list += [nn.Sequential(OrderedDict([(name, _m)]))] # __iadd__ append
+            # module_list[len(module_list) - 1] = nn.Sequential(OrderedDict([(name, _m)])) # `[-1]` makes wrong, using `len(module_list) - 1` instead. when __setitem__
 
         outfilters += [filters]
         module_list += [module]
@@ -88,14 +104,14 @@ class EmptyLayer(nn.Module):
 
 #---
 class YOLOLayer(nn.Module):
-    def __init__(self, anchors, num_classes, img_height, anchor_index):
+    def __init__(self, anchors, num_classes, anchor_index, img_dim=None):
         super(YOLOLayer, self).__init__()
         
         self.anchors = anchors
         self.nA = len(anchors)
         self.nC = num_classes
         self.bbox_attrs = num_classes + 5
-        self.img_dim = img_height
+        self.max_grid = 100
 
         if anchor_index[0] == 6:
             stride = 32
@@ -104,7 +120,7 @@ class YOLOLayer(nn.Module):
         else:
             stride = 8
 
-        self.nG = int(img_height / stride)
+        # self.max_grid = 100 # int(img_dim / stride)
         self.stride = stride
 
         self.scaled_anchors = (torch.tensor(anchors) / stride).to(torch.float32)        
@@ -112,10 +128,10 @@ class YOLOLayer(nn.Module):
         self.anchor_h = self.scaled_anchors[:, 1]
 
         if VERSION >= '0.4.1':
-            self.grid_x, self.grid_y = torch.meshgrid((torch.arange(self.nG), torch.arange(self.nG)))
+            self.grid_x, self.grid_y = torch.meshgrid((torch.arange(self.max_grid), torch.arange(self.max_grid)))
         else:
-            self.grid_x = torch.arange(self.nG).repeat(self.nG, 1)
-            self.grid_y = torch.arange(self.nG).repeat(self.nG, 1).t()
+            self.grid_x = torch.arange(self.max_grid).repeat(self.max_grid, 1)
+            self.grid_y = torch.arange(self.max_grid).repeat(self.max_grid, 1).t()
 
         self.mseLoss = nn.MSELoss(size_average=False)
         # self.crossEntropyLoss = nn.CrossEntropyLoss(size_average=True)
@@ -127,8 +143,11 @@ class YOLOLayer(nn.Module):
         bs = p.shape[0]
         nG = p.shape[2]
         stride = self.stride
-        assert nG == self.nG, 'grid pixel should be same.'
-        
+        grid_x = self.grid_x[:nG, :nG].to(dtype=p.dtype, device=p.device)
+        grid_y = self.grid_y[:nG, :nG].to(dtype=p.dtype, device=p.device)
+        # grid_x = torch.arange(nG).repeat(nG, 1).to(dtype=p.dtype, device=p.device)
+        # grid_y = torch.arange(nG).repeat(nG, 1).t().to(dtype=p.dtype, device=p.device)
+
         p = p.view(bs, self.nA, self.bbox_attrs, nG, nG).permute(0, 1, 3, 4, 2).contiguous()
 
         x = torch.sigmoid(p[..., 0])
@@ -144,8 +163,8 @@ class YOLOLayer(nn.Module):
         pred_cls =  torch.sigmoid(p[..., 5:])
 
         if target is None: # inference phase
-            pred_boxes[..., 0] = x + self.grid_x.to(dtype=x.dtype, device=x.device)
-            pred_boxes[..., 1] = y + self.grid_y.to(dtype=y.dtype, device=y.device)
+            pred_boxes[..., 0] = x + grid_x
+            pred_boxes[..., 1] = y + grid_y
             pred_boxes[..., 2] = width
             pred_boxes[..., 3] = height
 
@@ -160,17 +179,17 @@ class YOLOLayer(nn.Module):
         else: # train phase TODO 
 
             if requestPrecision:
-                pred_boxes[..., 0] = x + self.grid_x.to(dtype=x.dtype, device=x.device) - width / 2
-                pred_boxes[..., 1] = y + self.grid_y.to(dtype=x.dtype, device=x.device) - height / 2
-                pred_boxes[..., 2] = x + self.grid_x.to(dtype=x.dtype, device=x.device) + width / 2
-                pred_boxes[..., 3] = x + self.grid_y.to(dtype=x.dtype, device=x.device) + height / 2
+                pred_boxes[..., 0] = x + grid_x - width / 2
+                pred_boxes[..., 1] = y + grid_y - height / 2
+                pred_boxes[..., 2] = x + grid_x + width / 2
+                pred_boxes[..., 3] = x + grid_y + height / 2
 
             tx, ty, tw, th, tconf, tcls, conf_mask = build_target(pred_boxes.detach(), # here 
                                                             pred_conf.detach(), 
                                                             pred_cls.detach(), 
                                                             target, 
                                                             self.scaled_anchors.to(device=pred_boxes.device), 
-                                                            self.nA, self.nC, self.nG,
+                                                            self.nA, self.nC, nG,
                                                             requestPrecision)
             nM = tconf.sum().float()
             mask = tconf
@@ -206,12 +225,12 @@ class YOLOLayer(nn.Module):
 
 #---
 class DarkNet(nn.Module):
-    def __init__(self, cfg, img_size, cls_num=0):
+    def __init__(self, cfg, cls_num, img_dim=None):
         super(DarkNet, self).__init__()
         
         self.module_defs = parse_config(cfg)
-        self.module_defs[0]['height'] = img_size
-        self.module_list = create_model(self.module_defs)
+        # self.module_defs[0]['height'] = img_size
+        self.module_list = create_model(self.module_defs, cls_num=cls_num, img_dim=img_dim)
 
         self.loss_names = ['loss', 'x', 'y', 'w', 'h', 'conf', 'cls', ]
 
