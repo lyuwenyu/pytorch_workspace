@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.utils.data as data
 
 import random
+import glob
 
 from data.dataset import Dataset
 from model.build_model import DarkNet
@@ -14,6 +15,11 @@ logger = logging.getLogger('train')
 import argparse
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--device', type=str, default='')
+parser.add_argument('--resume', type=bool, default=False)
+parser.add_argument('--dim', type=int, default=320)
+args = parser.parse_args()
 
 def train(model, dataloader, optimizer, epoch=0):
 
@@ -42,6 +48,11 @@ def train(model, dataloader, optimizer, epoch=0):
         print('epoch/iter: {:0>3}/{:0>4}, lr: {:0.8f}, loss: {:.5f}'.format(e, i, optimizer.param_groups[0]['lr'], loss.item()))
 
     if e % 10 == 0:
+        # state = {
+        #     'epoch': e,
+        #     'model': model.state_dict(),
+        #     'optimizer': optimizer.state_dcit(),
+        # }
         torch.save(model.state_dict(), './output/ckpt-epoch-{:0>5}'.format(epoch))
 
 
@@ -53,13 +64,18 @@ def validate(model, dataloader, epoch=0):
 if __name__ == '__main__':
 
     dataset = Dataset('', size=320)
-    dataloader = data.DataLoader(dataset, batch_size=16, num_workers=3)
+    dataloader = data.DataLoader(dataset, batch_size=16, shuffle=True, num_workers=3)
 
     # datasets = [Dataset('', size=sz) for sz in [256, 320, 416]]
     # dataloaders = [data.DataLoader(d, batch_size=bs, shuffle=True, num_workers=3) for d, bs in zip(datasets, [10, 16, 24])]
 
     model = DarkNet('./_model/yolov3.cfg', img_size=320)
-    model.load_weights('./model/yolov3.weights')
+    # model.load_weights('./model/yolov3.weights')
+
+    if args.resume:
+        path = sorted(glob.glob('output/ckpt*'))[-1]
+        model.load_state_dict(torch.load(path))
+
     model = model.to(torch.device(device))
 
     optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.99)
