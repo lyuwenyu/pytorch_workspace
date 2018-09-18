@@ -12,7 +12,7 @@ path = os.path.join(filedir, '..', 'utils')
 sys.path.insert(0, path)
 sys.path.insert(0, filedir)
 from utils.parse_config import parse_config
-from build_target import build_target
+from build_target import build_target, _build_target
 
 
 VERSION = torch.__version__
@@ -117,10 +117,10 @@ class YOLOLayer(nn.Module):
             self.grid_x = torch.arange(self.nG).repeat(self.nG, 1)
             self.grid_y = torch.arange(self.nG).repeat(self.nG, 1).t()
 
-        self.mseLoss = nn.MSELoss(size_average=True)
+        self.mseLoss = nn.MSELoss(size_average=False)
         # self.crossEntropyLoss = nn.CrossEntropyLoss(size_average=True)
         self.bceLoss = nn.BCELoss(size_average=True)
-        # self.bceLoss2 = nn.BCELoss(size_average=False)
+        self.bceLoss_noave = nn.BCELoss(size_average=False)
 
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
         '''forward '''
@@ -165,9 +165,9 @@ class YOLOLayer(nn.Module):
                 pred_boxes[..., 2] = x + self.grid_x.to(dtype=x.dtype, device=x.device) + width / 2
                 pred_boxes[..., 3] = x + self.grid_y.to(dtype=x.dtype, device=x.device) + height / 2
 
-            tx, ty, tw, th, tconf, tcls, conf_mask = build_target(pred_boxes, 
-                                                            pred_conf, 
-                                                            pred_cls, 
+            tx, ty, tw, th, tconf, tcls, conf_mask = build_target(pred_boxes.detach(), # here 
+                                                            pred_conf.detach(), 
+                                                            pred_cls.detach(), 
                                                             target, 
                                                             self.scaled_anchors.to(device=pred_boxes.device), 
                                                             self.nA, self.nC, self.nG,
@@ -176,17 +176,29 @@ class YOLOLayer(nn.Module):
             mask = tconf
 
             if nM > 0:
-                lx = self.mseLoss(x[mask], tx[mask])
-                ly = self.mseLoss(y[mask], ty[mask])
-                lw = self.mseLoss(w[mask], tw[mask])
-                lh = self.mseLoss(h[mask], th[mask])
-                lcls = self.bceLoss(pred_cls[mask], tcls[mask])
-                lconf = self.bceLoss(pred_conf[conf_mask], tconf[conf_mask].to(dtype=pred_conf.dtype))
-                
-            else:
-                lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, )] * 6
+                lx = 5 * self.mseLoss(x[mask], tx[mask])
+                ly = 5 * self.mseLoss(y[mask], ty[mask])
+                lw = 5 * self.mseLoss(w[mask], tw[mask])
+                lh = 5 * self.mseLoss(h[mask], th[mask])
+                lcls = nM * self.bceLoss(pred_cls[mask], tcls[mask])
+                # lconf = self.bceLoss(pred_conf[conf_mask], tconf[conf_mask].to(dtype=pred_conf.dtype))
+                lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
+                lconf_ob = self.bceLoss_noave(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
+                lconf = nM * lconf_bg * 0.5 + lconf_ob
 
-            loss = lx + ly + lw + lh + lconf + lcls
+            else:
+                lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 6
+
+            # print(nM, )
+            # print(lx, ly, lw, lh)
+            # print(lconf, lcls)
+            # c += 1
+            # print((nM, lx, ly, lw, lh, lconf, lcls))
+
+            loss = (lx + ly + lw + lh + lconf + lcls) / nM
+
+            # if loss > 100:
+            #     return torch.tensor(0.).to(device=p.device)
             # print(loss.shape)
 
             return loss 
@@ -194,7 +206,7 @@ class YOLOLayer(nn.Module):
 
 #---
 class DarkNet(nn.Module):
-    def __init__(self, cfg, img_size):
+    def __init__(self, cfg, img_size, cls_num=0):
         super(DarkNet, self).__init__()
         
         self.module_defs = parse_config(cfg)
