@@ -89,7 +89,8 @@ def create_model(model_defs, cls_num, img_dim=None):
             _m = nn.Conv2d(in_channels, (num_classes + 5) * len(anchors), kernel_size, stride)
             del module_list[-1] # __delitem__
             module_list += [nn.Sequential(OrderedDict([(name, _m)]))] # __iadd__ append
-            # module_list[len(module_list) - 1] = nn.Sequential(OrderedDict([(name, _m)])) # `[-1]` makes wrong, using `len(module_list) - 1` instead. when __setitem__
+            # module_list[len(module_list) - 1] = nn.Sequential(OrderedDict([(name, _m)]))
+            # `[-1]` makes wrong, using `len(module_list) - 1` instead. when __setitem__
 
         outfilters += [filters]
         module_list += [module]
@@ -114,16 +115,16 @@ class YOLOLayer(nn.Module):
         self.max_grid = 100
 
         if anchor_index[0] == 6:
-            stride = 32
+            stride = 32.
         elif anchor_index[0] == 3:
-            stride = 16
+            stride = 16.
         else:
-            stride = 8
+            stride = 8.
 
         # self.max_grid = 100 # int(img_dim / stride)
         self.stride = stride
 
-        self.scaled_anchors = (torch.tensor(anchors) / stride).to(torch.float32)        
+        self.scaled_anchors = torch.tensor(anchors) / stride   
         self.anchor_w = self.scaled_anchors[:, 0]
         self.anchor_h = self.scaled_anchors[:, 1]
 
@@ -133,16 +134,15 @@ class YOLOLayer(nn.Module):
             self.grid_x = torch.arange(self.max_grid).repeat(self.max_grid, 1)
             self.grid_y = torch.arange(self.max_grid).repeat(self.max_grid, 1).t()
 
-        self.mseLoss = nn.MSELoss(size_average=False)
-        # self.crossEntropyLoss = nn.CrossEntropyLoss(size_average=True)
+        self.mseLoss = nn.MSELoss(size_average=True)
         self.bceLoss = nn.BCELoss(size_average=True)
         self.bceLoss_noave = nn.BCELoss(size_average=False)
+        self.crossentropy = nn.CrossEntropyLoss(size_average=True)
 
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
         '''forward '''
         bs = p.shape[0]
         nG = p.shape[2]
-        stride = self.stride
         grid_x = self.grid_x[:nG, :nG].to(dtype=p.dtype, device=p.device)
         grid_y = self.grid_y[:nG, :nG].to(dtype=p.dtype, device=p.device)
         # grid_x = torch.arange(nG).repeat(nG, 1).to(dtype=p.dtype, device=p.device)
@@ -170,7 +170,7 @@ class YOLOLayer(nn.Module):
 
             out = torch.cat((
                 pred_conf.view(bs, -1, 1),
-                pred_boxes.view(bs, -1, 4) * stride,
+                pred_boxes.view(bs, -1, 4) * self.stride,
                 pred_cls.view(bs, -1, self.nC)),
                 dim=-1)
 
@@ -188,22 +188,25 @@ class YOLOLayer(nn.Module):
                                                             pred_conf.detach(), 
                                                             pred_cls.detach(), 
                                                             target, 
-                                                            self.scaled_anchors.to(device=pred_boxes.device), 
+                                                            self.scaled_anchors.to(device=p.device), 
                                                             self.nA, self.nC, nG,
                                                             requestPrecision)
             nM = tconf.sum().float()
             mask = tconf
 
             if nM > 0:
-                lx = 5 * self.mseLoss(x[mask], tx[mask])
-                ly = 5 * self.mseLoss(y[mask], ty[mask])
-                lw = 5 * self.mseLoss(w[mask], tw[mask])
-                lh = 5 * self.mseLoss(h[mask], th[mask])
-                lcls = nM * self.bceLoss(pred_cls[mask], tcls[mask])
-                # lconf = self.bceLoss(pred_conf[conf_mask], tconf[conf_mask].to(dtype=pred_conf.dtype))
+                lx = self.mseLoss(x[mask], tx[mask]) # 5 * 
+                ly = self.mseLoss(y[mask], ty[mask]) # 5 * 
+                lw = self.mseLoss(w[mask], tw[mask]) # 5 * 
+                lh = self.mseLoss(h[mask], th[mask]) # 5 * 
+                lcls = self.bceLoss(pred_cls[mask], tcls[mask])
+                # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
                 lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
-                lconf_ob = self.bceLoss_noave(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
-                lconf = nM * lconf_bg * 0.5 + lconf_ob
+                # lconf_ob = self.bceLoss_noave(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
+                lconf_ob = self.bceLoss(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
+                lconf = lconf_bg + lconf_ob
+
+                # print(lx.item(), ly.item(), lw.item(), lh.item(), lcls.item(), lconf_bg.item(), lconf_ob.item(), lconf.item())
 
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 6
@@ -214,13 +217,14 @@ class YOLOLayer(nn.Module):
             # c += 1
             # print((nM, lx, ly, lw, lh, lconf, lcls))
 
-            loss = (lx + ly + lw + lh + lconf + lcls) / nM
-
+            # loss = (lx + ly + lw + lh + lconf + lcls) / nM
+            loss = lx + ly + lw + lh + lconf + lcls
+            # print(loss.item())
             # if loss > 100:
             #     return torch.tensor(0.).to(device=p.device)
             # print(loss.shape)
 
-            return loss 
+            return loss, lx, ly, lw, lh, lconf, lcls
 
 
 #---
@@ -232,12 +236,13 @@ class DarkNet(nn.Module):
         # self.module_defs[0]['height'] = img_size
         self.module_list = create_model(self.module_defs, cls_num=cls_num, img_dim=img_dim)
 
-        self.loss_names = ['loss', 'x', 'y', 'w', 'h', 'conf', 'cls', ]
+        self.loss_names = ['loss', 'x', 'y', 'w', 'h', 'conf', 'cls' ]
 
     def forward(self, x, target=None, requestPrecision=False, epoch=None):
         
         layer_outputs = []
         outputs = []
+        losses = dict.fromkeys(self.loss_names, 0)
 
         for _, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
 
@@ -261,20 +266,21 @@ class DarkNet(nn.Module):
             elif module_def['type'] == 'yolo':
                 if target is None: # test phase)
                     x = module(x)
+                    outputs += [x]
 
                 else: # training phase
-                    x = module[0](x, target=target)  ### module is sequential, not yolo
-                
-                outputs += [x]
-            
-            layer_outputs += [x]
+                    x = module[0](x, target=target)  # module is sequential object, not yolo
+                    outputs += [x[0]]
 
+                    for ni, xi in zip(self.loss_names, x):
+                        losses[ni] += xi.item()
+
+            layer_outputs += [x]
 
         if target is None:
             return torch.cat(outputs, dim=1)
-
         else:
-            return sum(outputs)
+            return sum(outputs), losses
 
 
     def load_weights(self, weights_path):
