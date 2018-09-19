@@ -161,7 +161,7 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
     tcls = torch.zeros(nB, nA, nG, nG, nC).to(device=pred_boxes.device) #.fill_(0)
     tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0).to(device=pred_boxes.device)
 
-    conf_mask = torch.zeros(nB, nA, nG, nG).to(device=pred_boxes.device)
+    conf_mask = torch.zeros(nB, nA, nG, nG).fill_(-1).to(device=pred_boxes.device)
 
     TP = torch.ByteTensor(nB, maxnT).fill_(0)
     FP = torch.ByteTensor(nB, maxnT).fill_(0)
@@ -172,10 +172,7 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
 
     for b in range(nB):
         for t in range(nT[b]):
-            # if target[b, t].sum() == 0:
-            #     continue
-            # print(b, t)
-            
+  
             tc = target[b][t, 0].long()
             gx = target[b][t, 1] * nG
             gy = target[b][t, 2] * nG
@@ -183,14 +180,14 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
             gh = target[b][t, 4] * nG
             gbox = target[b][t, 3:] * nG
 
-            gi = torch.clamp(gx.long(), min=0, max=nG-1)
-            gj = torch.clamp(gy.long(), min=0, max=nG-1)
+            gi = torch.clamp(gx.long(), min=0, max=nG - 1)
+            gj = torch.clamp(gy.long(), min=0, max=nG - 1)
 
             inter_area = torch.min(gbox, scaled_anchors).prod(1)
             iou_anchor = inter_area / (gbox.prod(0) + scaled_anchors.prod(1) - inter_area + 1e-15)
 
             # msk = (iou_anchor < ignore_threshold)[iou_anchor > 0.01]
-            # conf_mask[b, 0.05 < iou_anchor < ignore_threshold, gj, gi] = 1
+            # conf_mask[b, iou_anchor < ignore_threshold, gj, gi] = 1
 
             conf_mask[b, iou_anchor < ignore_threshold] = -1
             # print(conf_mask.sum())
@@ -207,7 +204,7 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
             tconf[b, a, gj, gi] = 1
             tcls[b, a, gj, gi, tc] = 1
             conf_mask[b, a, gj, gi] = 1
-            
+
     return tx, ty, tw, th, tconf, tcls, conf_mask
 
 
