@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger('train')
 
 import argparse
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+device = 'cuda:0' if not torch.cuda.is_available() else 'cpu'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--device', type=str, default='')
@@ -39,19 +39,20 @@ def train(model, dataloader, optimizer, epoch=0):
 
         bboxes = get_target()
 
-        loss = model(images, bboxes)
+        loss, losses = model(images, bboxes)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        print('epoch/iter: {:0>3}/{:0>4}, lr: {:0.8f}, loss: {:.5f}'.format(e, i, optimizer.param_groups[0]['lr'], loss.item()))
+        lin = ', '.join(['{}: {:.4f}'.format(k, v) for k, v in losses.items()])
+        print('epoch/iter: {:0>3}/{:0>3}, lr: {}, {}'.format(e, i, format(optimizer.param_groups[0]['lr'], '.0e'), lin))
 
     if e % 10 == 0:
         # state = {
         #     'epoch': e,
         #     'model': model.state_dict(),
-        #     'optimizer': optimizer.state_dcit(),
+        #     'optimizer': optimizer.state_dict(),
         # }
         torch.save(model.state_dict(), './output/ckpt-epoch-{:0>5}'.format(epoch))
 
@@ -64,12 +65,12 @@ def validate(model, dataloader, epoch=0):
 if __name__ == '__main__':
 
     dataset = Dataset('', size=320)
-    dataloader = data.DataLoader(dataset, batch_size=16, shuffle=True, num_workers=3)
+    dataloader = data.DataLoader(dataset, batch_size=16, shuffle=True, num_workers=5)
 
     # datasets = [Dataset('', size=sz) for sz in [256, 320, 416]]
     # dataloaders = [data.DataLoader(d, batch_size=bs, shuffle=True, num_workers=3) for d, bs in zip(datasets, [10, 16, 24])]
 
-    model = DarkNet('./_model/yolov3.cfg', img_size=320)
+    model = DarkNet('./_model/yolov3.cfg', cls_num=20)
     # model.load_weights('./model/yolov3.weights')
 
     if args.resume:
@@ -80,7 +81,7 @@ if __name__ == '__main__':
 
     optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.99)
     # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 60, 80], gamma=0.1)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[40, 60, 80], gamma=0.1)
 
     for e in range(int(102 / 1)):
 
