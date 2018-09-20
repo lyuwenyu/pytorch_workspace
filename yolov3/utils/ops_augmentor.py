@@ -19,8 +19,6 @@ class ImagePipeline(Pipeline):
                 pilimg = operation.perform_operation([image])[0]
 
         return pilimg
-        
-
 
   
 
