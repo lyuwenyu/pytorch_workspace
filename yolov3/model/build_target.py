@@ -47,7 +47,7 @@ def _build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, n
     tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0).to(device=pred_boxes.device)
     tcls = torch.zeros(nB, nA, nG, nG, nC).to(device=pred_boxes.device)
 
-    conf_mask = torch.ByteTensor(nB, nA, nG, nG).fill_(1).to(device=pred_boxes.device)
+    conf_mask = torch.ByteTensor(nB, nA, nG, nG).fill_(-1).to(device=pred_boxes.device)
 
     TP = torch.ByteTensor(nB, max(nT)).fill_(0)
     FP = torch.ByteTensor(nB, max(nT)).fill_(0)
@@ -79,7 +79,6 @@ def _build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, n
         _gi = gi.repeat(nA, 1)[_ignore]
         _gj = gj.repeat(nA, 1)[_ignore]
         conf_mask[i, _a, _gj, _gi] = 0
-        # _take_care = 0. < iou_anchor < ignore_threshold
 
         iou_anchor_best, a = iou_anchor.max(0) # best anchor for each target.
         # two targets can not claim the same anchor.
@@ -159,8 +158,9 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
     th = torch.zeros(nB, nA, nG, nG).to(device=pred_boxes.device)
 
     tcls = torch.zeros(nB, nA, nG, nG, nC).to(device=pred_boxes.device) #.fill_(0)
-    tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0).to(device=pred_boxes.device)
+    tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0).to(device=pred_boxes.device) # mask
 
+    # conf_mask = torch.zeros(nB, nA, nG, nG).fill_(0).to(device=pred_boxes.device)
     conf_mask = torch.zeros(nB, nA, nG, nG).fill_(-1).to(device=pred_boxes.device)
 
     TP = torch.ByteTensor(nB, maxnT).fill_(0)
@@ -171,8 +171,11 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
     nGt = 0
 
     for b in range(nB):
+
+        used = torch.zeros(nT[b]).fill_(-1).to(device=pred_boxes.device)
+        
         for t in range(nT[b]):
-  
+
             tc = target[b][t, 0].long()
             gx = target[b][t, 1] * nG
             gy = target[b][t, 2] * nG
@@ -186,14 +189,20 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
             inter_area = torch.min(gbox, scaled_anchors).prod(1)
             iou_anchor = inter_area / (gbox.prod(0) + scaled_anchors.prod(1) - inter_area + 1e-15)
 
-            # msk = (iou_anchor < ignore_threshold)[iou_anchor > 0.01]
-            # conf_mask[b, iou_anchor < ignore_threshold, gj, gi] = 1
+            # conf_mask[b, iou_anchor < ignore_threshold] = -1
+            conf_mask[b, iou_anchor > ignore_threshold, gj, gi] = 0
 
-            conf_mask[b, iou_anchor < ignore_threshold] = -1
-            # print(conf_mask.sum())
-            # c += 1
-
-            _, a = iou_anchor.max(0) # best anchor for target.
+            # one target to one anchor exclusively.
+            # iou, a = iou_anchor.max(0) # best anchor for target.
+            _, aindex = torch.sort(iou_anchor, descending=True)
+            a = -1
+            for ai in aindex:
+                uid = gj * 0.32432533 + gi * 0.53243245 + ai * 0.63321341
+                if (uid == used).sum() == 0:
+                    used[t] = uid
+                    a = ai
+                    break
+            if a == -1: continue
 
             tx[b, a, gj, gi] = gx - gi.float()
             ty[b, a, gj, gi] = gy - gj.float()
@@ -201,8 +210,8 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
             tw[b, a, gj, gi] = torch.log(gw / scaled_anchors[a, 0] + 1e-15)
             th[b, a, gj, gi] = torch.log(gh / scaled_anchors[a, 1] + 1e-15)
 
-            tconf[b, a, gj, gi] = 1
             tcls[b, a, gj, gi, tc] = 1
+            tconf[b, a, gj, gi] = 1
             conf_mask[b, a, gj, gi] = 1
 
     return tx, ty, tw, th, tconf, tcls, conf_mask
