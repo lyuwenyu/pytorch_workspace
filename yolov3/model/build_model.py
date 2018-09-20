@@ -159,8 +159,12 @@ class YOLOLayer(nn.Module):
         height = torch.exp(h) * self.anchor_h.view(1, -1, 1, 1).to(dtype=h.dtype, device=h.device)
 
         pred_boxes = torch.zeros((bs, self.nA, nG, nG, 4)).to(dtype=p.dtype, device=p.device)
-        pred_conf = torch.sigmoid(p[..., 4])
-        pred_cls =  torch.sigmoid(p[..., 5:])
+        
+        pred_conf = p[..., 4] 
+        pred_cls =  p[..., 5:] 
+
+        # cross entropy
+        # pred_cls = p[..., 5:]
 
         if target is None: # inference phase
             pred_boxes[..., 0] = x + grid_x
@@ -170,8 +174,9 @@ class YOLOLayer(nn.Module):
 
             out = torch.cat((
                 pred_boxes.view(bs, -1, 4) * self.stride,
-                pred_conf.view(bs, -1, 1),
-                pred_cls.view(bs, -1, self.nC)),
+                torch.sigmoid(pred_conf).view(bs, -1, 1),
+                torch.sigmoid(pred_cls).view(bs, -1, self.nC)),
+                # nn.functional.softmax(pred_cls, dim=-1).view(bs, -1, self.nC)), 
                 dim=-1)
 
             return out
@@ -195,16 +200,23 @@ class YOLOLayer(nn.Module):
             mask = tconf
 
             if nM > 0:
+
+                pred_conf = torch.sigmoid(pred_conf)
+                pred_cls =  torch.sigmoid(pred_cls)
+
                 lx = self.mseLoss(x[mask], tx[mask]) # 5 * 
                 ly = self.mseLoss(y[mask], ty[mask]) # 5 * 
                 lw = self.mseLoss(w[mask], tw[mask]) # 5 * 
                 lh = self.mseLoss(h[mask], th[mask]) # 5 * 
-                lcls = self.bceLoss(pred_cls[mask], tcls[mask])
+                # lcls = self.bceLoss(pred_cls[mask], tcls[mask])
+                lcls_bg = self.bceLoss(pred_cls[mask == 0], tcls[mask == 0])
+                lcls_ob = self.bceLoss(pred_cls[mask == 1], tcls[mask == 1])
+                lcls = 2. * lcls_bg + lcls_ob
                 # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
                 # lconf = self.bceLoss(pred_conf[conf_mask != 0 ], tconf[conf_mask != 0].to(dtype=pred_conf.dtype))
                 lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
                 lconf_ob = self.bceLoss(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
-                lconf = lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
+                lconf = 2. * lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
 
                 # print(lx.item(), ly.item(), lw.item(), lh.item(), lcls.item(), lconf_bg.item(), lconf_ob.item(), lconf.item())
 
