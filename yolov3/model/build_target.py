@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-
+import random
 
 def bbox_iou(box1, box2, x1y1x2y2=True):
     '''
@@ -163,10 +163,10 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
     # conf_mask = torch.zeros(nB, nA, nG, nG).fill_(0).to(device=pred_boxes.device)
     conf_mask = torch.zeros(nB, nA, nG, nG).fill_(-1).to(device=pred_boxes.device)
 
-    TP = torch.ByteTensor(nB, maxnT).fill_(0)
-    FP = torch.ByteTensor(nB, maxnT).fill_(0)
-    FN = torch.ByteTensor(nB, maxnT).fill_(0)
-    TC = torch.ShortTensor(nB, maxnT).fill_(-1)
+    # TP = torch.ByteTensor(nB, maxnT).fill_(0)
+    # FP = torch.ByteTensor(nB, maxnT).fill_(0)
+    # FN = torch.ByteTensor(nB, maxnT).fill_(0)
+    # TC = torch.ShortTensor(nB, maxnT).fill_(-1)
 
     nGt = 0
 
@@ -174,6 +174,10 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
 
         used = torch.zeros(nT[b]).fill_(-1).to(device=pred_boxes.device)
         
+        # bbx_gt_index = range(nT[b])
+        # random.shuffle(bbx_gt_index)
+        # for t in range(bbx_gt_index):
+
         for t in range(nT[b]):
 
             tc = target[b][t, 0].long()
@@ -197,12 +201,18 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
             _, aindex = torch.sort(iou_anchor, descending=True)
             a = -1
             for ai in aindex:
-                uid = gj * 0.32432533 + gi * 0.53243245 + ai * 0.63321341
+                uid = gj.float() * 0.32432533 + gi.float() * 0.53243245 + ai.float() * 0.63321341
                 if (uid == used).sum() == 0:
                     used[t] = uid
                     a = ai
                     break
-            if a == -1: continue
+                else:
+                    # print((uid == used).sum())
+                    # print('---using same anchor for one target---')
+                    pass  
+            if a == -1: # or used[t] == -1
+                # print('-----no anchor for this target------')
+                continue
 
             tx[b, a, gj, gi] = gx - gi.float()
             ty[b, a, gj, gi] = gy - gj.float()
