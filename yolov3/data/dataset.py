@@ -73,15 +73,14 @@ class Dataset(data.Dataset):
 
         # if random.random() < 0.5:
         #     img, bboxes = ops_transform.pad_resize(img, bboxes, size=(512, 512))
-
-        if random.random() < 0.5:
-            img, bboxes, labels = ops_transform.random_perspective(img, bboxes, labels)
+        # if random.random() < 0.5:
+        #     img, bboxes, labels = ops_transform.random_perspective(img, bboxes, labels)
 
         if random.random() < 0.5:
             img, bboxes, labels = ops_transform.random_crop(img, bboxes, labels)
 
         img = self.pipeline.transform(img)
-            
+
         return img, bboxes, labels
 
     def __len__(self):
@@ -109,13 +108,22 @@ class Dataset(data.Dataset):
         else:
             img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
 
-        # here to yolo bbox type
+        # here convert bbox to yolo type
         bboxes = ops_transform.xyxy2xywh(bboxes, img.size)  
+
+        if True: 
+            '''shuffle label and bbox in one image,
+            here to handle select same bbox in an image, 
+            when more than one image choose same anchor.
+            '''
+            index = np.random.permutation(range(len(bboxes)))
+            bboxes = bboxes[index]
+            labels = labels[index]
 
         # mask cls bbx
         ngt = len(bboxes)
         target_tensor = torch.zeros(self.max_n, 6)
-        target_tensor[:ngt, 2: ] = torch.from_numpy(bboxes)
+        target_tensor[:ngt, 2:] = torch.from_numpy(bboxes)
         target_tensor[:ngt, 1] = torch.tensor(labels)
         target_tensor[:ngt, 0] = 1
 
@@ -129,7 +137,7 @@ if __name__ == '__main__':
     
 
     dataset = Dataset('')
-    dataloader = data.DataLoader(dataset, batch_size=100, shuffle=True, num_workers=6) 
+    dataloader = data.DataLoader(dataset, batch_size=100, shuffle=True, num_workers=2) 
     
     topil = transforms.ToPILImage()
 
