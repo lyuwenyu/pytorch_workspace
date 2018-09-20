@@ -169,8 +169,8 @@ class YOLOLayer(nn.Module):
             pred_boxes[..., 3] = height
 
             out = torch.cat((
-                pred_conf.view(bs, -1, 1),
                 pred_boxes.view(bs, -1, 4) * self.stride,
+                pred_conf.view(bs, -1, 1),
                 pred_cls.view(bs, -1, self.nC)),
                 dim=-1)
 
@@ -201,10 +201,10 @@ class YOLOLayer(nn.Module):
                 lh = self.mseLoss(h[mask], th[mask]) # 5 * 
                 lcls = self.bceLoss(pred_cls[mask], tcls[mask])
                 # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
+                # lconf = self.bceLoss(pred_conf[conf_mask != 0 ], tconf[conf_mask != 0].to(dtype=pred_conf.dtype))
                 lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
-                # lconf_ob = self.bceLoss_noave(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
                 lconf_ob = self.bceLoss(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
-                lconf = lconf_bg + lconf_ob
+                lconf = lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
 
                 # print(lx.item(), ly.item(), lw.item(), lh.item(), lcls.item(), lconf_bg.item(), lconf_ob.item(), lconf.item())
 
