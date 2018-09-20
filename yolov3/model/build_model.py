@@ -175,8 +175,8 @@ class YOLOLayer(nn.Module):
             out = torch.cat((
                 pred_boxes.view(bs, -1, 4) * self.stride,
                 torch.sigmoid(pred_conf).view(bs, -1, 1),
-                torch.sigmoid(pred_cls).view(bs, -1, self.nC)),
-                # nn.functional.softmax(pred_cls, dim=-1).view(bs, -1, self.nC)), 
+                # torch.sigmoid(pred_cls).view(bs, -1, self.nC)),
+                nn.functional.softmax(pred_cls, dim=-1).view(bs, -1, self.nC)), 
                 dim=-1)
 
             return out
@@ -202,17 +202,22 @@ class YOLOLayer(nn.Module):
             if nM > 0:
 
                 pred_conf = torch.sigmoid(pred_conf)
-                pred_cls =  torch.sigmoid(pred_cls)
+                # pred_cls =  torch.sigmoid(pred_cls)
 
                 lx = self.mseLoss(x[mask], tx[mask]) # 5 * 
                 ly = self.mseLoss(y[mask], ty[mask]) # 5 * 
                 lw = self.mseLoss(w[mask], tw[mask]) # 5 * 
                 lh = self.mseLoss(h[mask], th[mask]) # 5 * 
+
+                
                 # lcls = self.bceLoss(pred_cls[mask], tcls[mask])
-                lcls_bg = self.bceLoss(pred_cls[mask == 0], tcls[mask == 0])
-                lcls_ob = self.bceLoss(pred_cls[mask == 1], tcls[mask == 1])
-                lcls = 2. * lcls_bg + lcls_ob
-                # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
+                # lcls_bg = self.bceLoss(pred_cls[mask == 0], tcls[mask == 0])
+                # lcls_ob = self.bceLoss(pred_cls[mask == 1], tcls[mask == 1])
+                # lcls = 2. * lcls_bg + lcls_ob
+                lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
+                # print(pred_cls[mask == 1].shape)
+                # c += 1
+
                 # lconf = self.bceLoss(pred_conf[conf_mask != 0 ], tconf[conf_mask != 0].to(dtype=pred_conf.dtype))
                 lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
                 lconf_ob = self.bceLoss(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
