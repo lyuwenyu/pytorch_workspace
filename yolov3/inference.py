@@ -11,6 +11,8 @@ from utils.ops_show_bbox import show_bbox
 from utils import ops_transform
 
 import argparse
+import glob
+import random
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--path', default='./_model/dog-cycle-car.png')
@@ -19,41 +21,58 @@ args = parser.parse_args()
 
 def pre_image(img, inp_dim):
     totensor = transforms.ToTensor()
-    img = Image.open(img).resize([inp_dim, inp_dim])
+    img = ops_transform.pad_resize(Image.open(img), size=(inp_dim, inp_dim))
     return totensor(img).unsqueeze(0)
 
 # dim = 608
 # dim = 448
 # dim = 416
-# dim = 320
+dim = 320
 # dim = 256 
 # dim = 224
-dim = args.dim
+# dim = args.dim
 
 device = 'cpu' # cuda' if torch.cuda.is_available() else 'cpu'
 device = torch.device(device)
 
-model = DarkNet('./_model/yolov3.cfg', img_size=dim)
-# model.load_state_dict(torch.load('./output/ckpt-00006'))
-model.load_weights('./model/yolov3.weights')
+model = DarkNet('./_model/yolov3.cfg', cls_num=20)
+# model.load_state_dict(torch.load('yolov3.pytorch'))
+model.load_state_dict(torch.load('./output/ckpt-epoch-00070'))
+# model.load_weights('./model/yolov3.weights')
+
 model.eval()
 model = model.to(device=device)
+# print(model)
+
+paths = glob.glob('/home/wenyu/workspace/dataset/voc/VOCdevkit/VOC2007/JPEGImages/*.jpg')
+random.shuffle(paths)
+args.path = paths[0]
 
 image = pre_image(args.path, dim)
 data = image.to(dtype=torch.float32, device=device)
 
 tic = time.time()
-pred = model(data.to(device=device))
+predx = model(data.to(device=device))
 print('time: ', time.time()-tic)
 
-show_bbox(Image.open(args.path).resize((dim, dim)), pred[pred[:, :, 0] > 0.3].cpu().data.numpy()[:, 1:5], xyxy=False, normalized=False)
+pred = predx[0]
 
-pred = pred.cpu().data.numpy()[0]
-result = NMS(pred, objectness_threshold=0.3, iou_threshold=0.8)
+objectness_threshold = 0.99
+if len(pred[pred[:, 4] > objectness_threshold]) > 0:
+    show_bbox(ops_transform.pad_resize(Image.open(args.path), size=(dim, dim)), pred[pred[:, 4] > objectness_threshold].cpu().data.numpy()[:, 0: 4], xyxy=False, normalized=False)
+else:
+    print(f'--{objectness_threshold}-no objs---')
 
-for i in result:
-    show_bbox(Image.open(args.path).resize((dim, dim)), result[i][0])
+pred = pred.cpu().data.numpy()
+result = NMS(pred, objectness_threshold=0.99, class_threshold=0.1, iou_threshold=0.4)
 
+for k, v in result.items():
+    show_bbox(ops_transform.pad_resize(Image.open(args.path), size=(dim, dim)), v[0])
+
+    print('k: ', k)
+    print('b: ', v[0])
+    print('p: ', v[1])
+    print()
 # print('++++++++++++++++++++++++++++++++++++++++')
 # import torch.onnx
 # import caffe2.python.onnx.backend as backbend
@@ -63,7 +82,7 @@ for i in result:
 # torch.onnx.export(model, dummy_input, 'test.onnx', verbose=True)
 # model = onnx.load('test.onnx')
 # onnx.checker.check_model(model)
-# onnx.helper.printable_graph(model.graph) 
+# # onnx.helper.printable_graph(model.graph) 
 
 # rep = backbend.prepare(model, device='CPU')
 
