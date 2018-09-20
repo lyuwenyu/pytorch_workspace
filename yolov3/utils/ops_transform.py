@@ -18,8 +18,8 @@ def xyxy2xywh(bboxes, size=None):
     new_bboxes = np.zeros_like(bboxes)  # bboxes.copy() # copy.deepcopy(bboxes)
     new_bboxes[:, 0] = (bboxes[:, 0] + bboxes[:, 2]) / 2 
     new_bboxes[:, 1] = (bboxes[:, 1] + bboxes[:, 3]) / 2
-    new_bboxes[:, 2] = (bboxes[:, 2] - bboxes[:, 0])
-    new_bboxes[:, 3] = (bboxes[:, 3] - bboxes[:, 1])
+    new_bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 0]
+    new_bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
 
     if size is not None: # nomalize
         new_bboxes[:, [0, 2]] /= size[0]
