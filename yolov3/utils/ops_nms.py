@@ -33,19 +33,26 @@ def nms_per_class(bboxes, scores, iou_threshold):
     return np.array(keep)
 
         
-def NMS(dets, objectness_threshold=0., iou_threshold=0.,):
+def NMS(dets, objectness_threshold=0., class_threshold=0.3, iou_threshold=0.,):
     '''
     dets: [indictor objectnest, bbox, class score]
     objectness_threshold:
     iou_threshold: 
     '''
 
-    dets = dets[dets[:, 0] > objectness_threshold]
+    dets = dets[dets[:, 4] > objectness_threshold]
     if len(dets) == 0: return {}
 
-    pred_bboxes = dets[:, 1: 5]
+    pred_bboxes = dets[:, 0: 4]
     pred_classes = np.argmax(dets[:, 5:], axis=1)
     pred_scores = np.max(dets[:, 5:], axis=1)
+
+    pred_bboxes = pred_bboxes[pred_scores > class_threshold]
+    pred_classes = pred_classes[pred_scores > class_threshold]
+    pred_scores = pred_scores[pred_scores > class_threshold]
+
+    if len(pred_scores) == 0: return {}
+
     nclass = len(dets[0, 5:])
 
     result = {}
