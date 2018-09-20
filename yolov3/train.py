@@ -20,7 +20,7 @@ device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 parser = argparse.ArgumentParser()
 parser.add_argument('--device', type=str, default='cpu')
 parser.add_argument('--resume', type=bool, default=False)
-parser.add_argument('--loss_step', type=int, default=5)
+parser.add_argument('--loss_step', type=int, default=10)
 parser.add_argument('--save_step', type=int, default=10)
 parser.add_argument('--img_dim', type=int, default=320)
 parser.add_argument('--num_classes', type=int, default=20)
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     # dataloaders = [data.DataLoader(d, batch_size=bs, shuffle=True, num_workers=3) for d, bs in zip(datasets, [10, 16, 24])]
 
     model = DarkNet(args.model_cfg, cls_num=args.num_classes)
-    # model = weight_init(model, path='./model/yolov3.pytorch')
+    model = weight_init(model, path='./model/yolov3.pytorch')
     # model.load_state_dict(torch.load('yolov3.pytorch'), strict=False)
     # model.load_weights('./model/yolov3.weights')
     # torch.save(model.state_dict(), 'yolov3.pytorch')
