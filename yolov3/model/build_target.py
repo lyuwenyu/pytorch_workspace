@@ -173,7 +173,6 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
     for b in range(nB):
 
         used = torch.zeros(nT[b]).fill_(-1).to(device=pred_boxes.device)
-        
         # bbx_gt_index = range(nT[b])
         # random.shuffle(bbx_gt_index)
         # for t in range(bbx_gt_index):
@@ -198,11 +197,11 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
 
             # one target to one anchor exclusively.
             # iou, a = iou_anchor.max(0) # best anchor for target.
-            _, aindex = torch.sort(iou_anchor, descending=True)
+            ious, aindex = torch.sort(iou_anchor, descending=True)
             a = -1
-            for ai in aindex:
+            for ai, iou in zip(aindex, ious):
                 uid = gj.float() * 0.32432533 + gi.float() * 0.53243245 + ai.float() * 0.63321341
-                if (uid == used).sum() == 0:
+                if (uid == used).sum() == 0 and iou > 0.5:
                     used[t] = uid
                     a = ai
                     break
