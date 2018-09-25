@@ -1,6 +1,7 @@
 import os
 from PIL import Image
 from PIL import ImageDraw
+import glob
 
 import numpy as np
 
@@ -8,8 +9,8 @@ from utils.ops_parse_xml import parse_xml
 from utils.ops_pad_resize import pad_resize
 from utils.ops_transform import flip_lr, flip_tb
 
-root = '/home/wenyu/workspace/dataset/fisheye/dataset_zc/20180815_record5_KeJiYuan/'
-ann = os.path.join(root, 'anno', '20180815_record5_camera_2_00004981.xml')
+root = '/home/wenyu/workspace/dataset/'
+ann = glob.glob(root + '/*.xml')[0]
 path = ann.replace('anno', 'img').replace('xml', 'jpg')
 print(path)
 
@@ -38,7 +39,6 @@ draw = ImageDraw.Draw(img)
 for bbx in bboxes:
     draw.rectangle(tuple(bbx), outline='red')
 img.show()
-
 
 
 img = Image.open(path)
