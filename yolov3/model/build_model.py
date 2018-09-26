@@ -135,8 +135,8 @@ class YOLOLayer(nn.Module):
             self.grid_y = torch.arange(self.max_grid).repeat(self.max_grid, 1).t()
 
         self.mseLoss = nn.MSELoss(size_average=True)
-        self.bceLoss = nn.BCELoss(size_average=True)
-        self.bceLoss_noave = nn.BCELoss(size_average=False)
+        # self.bceLoss = nn.BCELoss(size_average=True)
+        self.bceLoss = nn.BCEWithLogitsLoss(size_average=True)
         self.crossentropy = nn.CrossEntropyLoss(size_average=True)
 
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
@@ -201,45 +201,32 @@ class YOLOLayer(nn.Module):
 
             if nM > 0:
 
-                pred_conf = torch.sigmoid(pred_conf)
+                # pred_conf = torch.sigmoid(pred_conf)
                 # pred_cls =  torch.sigmoid(pred_cls)
 
-                lx = self.mseLoss(x[mask], tx[mask]) # 5 * 
-                ly = self.mseLoss(y[mask], ty[mask]) # 5 * 
-                lw = self.mseLoss(w[mask], tw[mask]) # 5 * 
-                lh = self.mseLoss(h[mask], th[mask]) # 5 * 
+                lx = self.mseLoss(x[mask], tx[mask])
+                ly = self.mseLoss(y[mask], ty[mask])
+                lw = self.mseLoss(w[mask], tw[mask])
+                lh = self.mseLoss(h[mask], th[mask])
 
-                
-                # lcls = self.bceLoss(pred_cls[mask], tcls[mask])
-                # lcls_bg = self.bceLoss(pred_cls[mask == 0], tcls[mask == 0])
-                # lcls_ob = self.bceLoss(pred_cls[mask == 1], tcls[mask == 1])
-                # lcls = 2. * lcls_bg + lcls_ob
-                lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
-                # print(pred_cls[mask == 1].shape)
-                # c += 1
-
-                # lconf = self.bceLoss(pred_conf[conf_mask != 0 ], tconf[conf_mask != 0].to(dtype=pred_conf.dtype))
+                # lconf = self.bceLoss(pred_conf[conf_mask != 0], tconf[conf_mask != 0].to(dtype=pred_conf.dtype))
                 lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
                 lconf_ob = self.bceLoss(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
-                lconf = 2. * lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
+                lconf = lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
+
+                lcls = self.bceLoss(pred_cls[mask], tcls[mask])
+                # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
+                # print(pred_cls[mask == 1].shape)
+                # c += 1
 
                 # print(lx.item(), ly.item(), lw.item(), lh.item(), lcls.item(), lconf_bg.item(), lconf_ob.item(), lconf.item())
 
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 6
 
-            # print(nM, )
-            # print(lx, ly, lw, lh)
-            # print(lconf, lcls)
-            # c += 1
-            # print((nM, lx, ly, lw, lh, lconf, lcls))
-
             # loss = (lx + ly + lw + lh + lconf + lcls) / nM
             loss = lx + ly + lw + lh + lconf + lcls
-            # print(loss.item())
-            # if loss > 100:
-            #     return torch.tensor(0.).to(device=p.device)
-            # print(loss.shape)
+
 
             return loss, lx, ly, lw, lh, lconf, lcls
 
