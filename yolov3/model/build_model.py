@@ -227,7 +227,6 @@ class YOLOLayer(nn.Module):
             # loss = (lx + ly + lw + lh + lconf + lcls) / nM
             loss = lx + ly + lw + lh + lconf + lcls
 
-
             return loss, lx, ly, lw, lh, lconf, lcls
 
 
