@@ -33,12 +33,12 @@ class Dataset(data.Dataset):
         self.image_dir
         self.label_map
         '''
-        with open('./data/fisheye.names', 'r') as f:
+        with open('./data/data.names', 'r') as f:
             lines = f.readlines()
             lines = [ll.strip() for ll in lines]
             self.label_map = dict(zip(lines, range(len(lines))))
 
-        annos_dir = '/home/wenyu/workspace/dataset/fisheye/tc_20180816'
+        annos_dir = '/home/wenyu/workspace/dataset/'
         self.image_dir = annos_dir
         self.anns = glob.glob(os.path.join(annos_dir, '*.xml'))
         self.max_n = 50
