@@ -134,10 +134,9 @@ class YOLOLayer(nn.Module):
             self.grid_x = torch.arange(self.max_grid).repeat(self.max_grid, 1)
             self.grid_y = torch.arange(self.max_grid).repeat(self.max_grid, 1).t()
 
-        self.mseLoss = nn.MSELoss(size_average=True)
-        # self.bceLoss = nn.BCELoss(size_average=True)
-        self.bceLoss = nn.BCEWithLogitsLoss(size_average=True)
-        self.crossentropy = nn.CrossEntropyLoss(size_average=True)
+        self.mseLoss = nn.MSELoss() # size_average=True
+        self.bceLoss = nn.BCEWithLogitsLoss()
+        self.crossentropy = nn.CrossEntropyLoss()
 
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
         '''forward '''
@@ -189,17 +188,17 @@ class YOLOLayer(nn.Module):
                 pred_boxes[..., 2] = x + grid_x + width / 2
                 pred_boxes[..., 3] = x + grid_y + height / 2
 
-            tx, ty, tw, th, tconf, tcls, conf_mask = build_target(pred_boxes.detach(), # here 
-                                                            pred_conf.detach(), 
-                                                            pred_cls.detach(), 
+            tx, ty, tw, th, tconf, tcls, conf_mask = build_target(pred_boxes.data, # here 
+                                                            pred_conf.data, 
+                                                            pred_cls.data, 
                                                             target, 
                                                             self.scaled_anchors.to(device=p.device), 
                                                             self.nA, self.nC, nG,
                                                             requestPrecision)
-            nM = tconf.sum().float()
+            nobj = tconf.sum().float()
             mask = tconf
 
-            if nM > 0:
+            if nobj > 0:
 
                 # pred_conf = torch.sigmoid(pred_conf)
                 # pred_cls =  torch.sigmoid(pred_cls)
@@ -224,8 +223,9 @@ class YOLOLayer(nn.Module):
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 6
 
-            # loss = (lx + ly + lw + lh + lconf + lcls) / nM
-            loss = lx + ly + lw + lh + lconf + lcls
+            loss = (lx + ly + lw + lh + lconf + lcls) * nobj / bs
+            # loss = lx + ly + lw + lh + lconf + lcls
+
 
             return loss, lx, ly, lw, lh, lconf, lcls
 
