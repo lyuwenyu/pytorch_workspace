@@ -91,7 +91,7 @@ if __name__ == '__main__':
     # dataloaders = [data.DataLoader(d, batch_size=bs, shuffle=True, num_workers=3) for d, bs in zip(datasets, [10, 16, 24])]
 
     model = DarkNet(args.model_cfg, cls_num=args.num_classes)
-    model = weight_init(model, path='./model/yolov3.pytorch')
+    # model = weight_init(model, path='./model/yolov3.pytorch')
     # model.load_state_dict(torch.load('yolov3.pytorch'), strict=False)
     # model.load_weights('./model/yolov3.weights')
     # torch.save(model.state_dict(), 'yolov3.pytorch')
