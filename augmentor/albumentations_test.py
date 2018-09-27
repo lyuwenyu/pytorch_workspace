@@ -29,12 +29,10 @@ def get_transforms(min_visibility=0.3, bbox=None):
     ]
     # random.shuffle(transforms)
 
-    if bbox:
-        bbox_params = {'format': 'pascal_voc', 'min_visibility': min_visibility, 'label_fields': ['classes']}
-    else:
-        bbox_params = {}
+    bbox_params = {'format': 'pascal_voc', 'min_visibility': min_visibility, 'label_fields': ['classes']} if bbox else {}
 
     return Compose(transforms, bbox_params=bbox_params, p=1)
+
 
 transforms = get_transforms(bbox=True)
 
