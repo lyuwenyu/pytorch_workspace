@@ -40,11 +40,23 @@ def resume(model, optimizer=None, scheduler=None, state_path=''):
     state = torch.load(state_path)
     model.load_state_dict(state['model'])
 
+    '''e.g.SGD
+    {'state': {},
+    'param_groups': [{'lr': 0.1,
+    'momentum': 0,
+    'dampening': 0,
+    'weight_decay': 0,
+    'nesterov': False,
+    'initial_lr': 0.1,
+    'params': [140222813838000, 140222813838720]}]}
+    '''
     if optimizer is not None:
         optimizer.load_state_dict(state['optimizer'])
 
+    '''{'step_size': 10, 'gamma': 0.1, 'base_lrs': [0.1], 'last_epoch': -1}'''
     if scheduler is not None:
         scheduler.load_state_dict(state['scheduler'])
+
 
 
 if __name__ == '__main__':
