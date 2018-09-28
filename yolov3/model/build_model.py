@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from collections import OrderedDict
+# from tensorboardX import SummaryWriter
 
 filedir = os.path.dirname(os.path.abspath(__file__))
 path = os.path.join(filedir, '..', 'utils')
@@ -15,7 +16,7 @@ sys.path.insert(0, path)
 sys.path.insert(0, filedir)
 from utils.parse_config import parse_config
 from build_target import build_target, _build_target
-
+from utils.ops_logger import writer
 
 VERSION = torch.__version__
 
@@ -182,12 +183,6 @@ class YOLOLayer(nn.Module):
         
         else: # train phase TODO 
 
-            if requestPrecision:
-                pred_boxes[..., 0] = x + grid_x - width / 2
-                pred_boxes[..., 1] = y + grid_y - height / 2
-                pred_boxes[..., 2] = x + grid_x + width / 2
-                pred_boxes[..., 3] = x + grid_y + height / 2
-
             tx, ty, tw, th, tconf, tcls, conf_mask = build_target(pred_boxes.data, # here 
                                                             pred_conf.data, 
                                                             pred_cls.data, 
@@ -211,7 +206,7 @@ class YOLOLayer(nn.Module):
                 # lconf = self.bceLoss(pred_conf[conf_mask != 0], tconf[conf_mask != 0].to(dtype=pred_conf.dtype))
                 lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
                 lconf_ob = self.bceLoss(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
-                lconf = lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
+                lconf = 2 * lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
 
                 lcls = self.bceLoss(pred_cls[mask], tcls[mask])
                 # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
@@ -222,7 +217,17 @@ class YOLOLayer(nn.Module):
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 6
 
             loss = (lx + ly + lw + lh + lconf + lcls) * numobj / (bs + 1e-8)
-    
+            
+            # writer.add_scalars('losses', {
+            #     'loss': loss.item(),
+            #     'lx': lx.item(),
+            #     'ly': ly.item(),
+            #     'lw': lw.item(),
+            #     'lh': lh.item(),
+            #     'lcong': lconf.item(),
+            #     'lcls': lcls.item()
+            # })
+
             return loss, lx, ly, lw, lh, lconf, lcls
 
 
@@ -241,9 +246,9 @@ class DarkNet(nn.Module):
         
         layer_outputs = []
         outputs = []
-        losses = dict.fromkeys(self.loss_names, 0)
+        # losses = dict.fromkeys(self.loss_names, 0)
         
-        output4paralel = torch.zeros(1, len(self.loss_names)).to(device=x.device) 
+        # output4paralel = np.zeros((1, len(self.loss_names)))
 
         for _, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
 
@@ -272,10 +277,9 @@ class DarkNet(nn.Module):
                 else: # training phase
                     x = module[0](x, target=self.set_target(target))  # module is sequential object, not yolo
                     outputs += [x[0]]
-
-                    for ii, (ni, xi) in enumerate(zip(self.loss_names, x)):
-                        output4paralel[0, ii] += xi
-                        losses[ni] += xi.item()
+                    # for ii, (ni, xi) in enumerate(zip(self.loss_names, x)):
+                    #     output4paralel[0, ii] += [xi.item()]
+                    #     losses[ni] += xi.item()
 
             layer_outputs += [x]
 
@@ -283,7 +287,7 @@ class DarkNet(nn.Module):
             return torch.cat(outputs, dim=1)
 
         else:
-            return output4paralel
+            return sum(outputs)
 
 
     def set_target(self, target):
