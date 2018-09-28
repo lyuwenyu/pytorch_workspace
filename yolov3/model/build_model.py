@@ -174,8 +174,8 @@ class YOLOLayer(nn.Module):
             out = torch.cat((
                 pred_boxes.view(bs, -1, 4) * self.stride,
                 torch.sigmoid(pred_conf).view(bs, -1, 1),
-                # torch.sigmoid(pred_cls).view(bs, -1, self.nC)),
-                nn.functional.softmax(pred_cls, dim=-1).view(bs, -1, self.nC)), 
+                torch.sigmoid(pred_cls).view(bs, -1, self.nC)),
+                # nn.functional.softmax(pred_cls, dim=-1).view(bs, -1, self.nC)), 
                 dim=-1)
 
             return out
@@ -195,10 +195,10 @@ class YOLOLayer(nn.Module):
                                                             self.scaled_anchors.to(device=p.device), 
                                                             self.nA, self.nC, nG,
                                                             requestPrecision)
-            nobj = tconf.sum().float()
+            numobj = tconf.sum().float()
             mask = tconf
 
-            if nobj > 0:
+            if numobj > 0:
 
                 # pred_conf = torch.sigmoid(pred_conf)
                 # pred_cls =  torch.sigmoid(pred_cls)
@@ -215,18 +215,14 @@ class YOLOLayer(nn.Module):
 
                 lcls = self.bceLoss(pred_cls[mask], tcls[mask])
                 # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
-                # print(pred_cls[mask == 1].shape)
-                # c += 1
 
                 # print(lx.item(), ly.item(), lw.item(), lh.item(), lcls.item(), lconf_bg.item(), lconf_ob.item(), lconf.item())
 
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 6
 
-            loss = (lx + ly + lw + lh + lconf + lcls) * nobj / bs
-            # loss = lx + ly + lw + lh + lconf + lcls
-
-
+            loss = (lx + ly + lw + lh + lconf + lcls) * numobj / (bs + 1e-8)
+    
             return loss, lx, ly, lw, lh, lconf, lcls
 
 
@@ -240,12 +236,14 @@ class DarkNet(nn.Module):
         self.module_list = create_model(self.module_defs, cls_num=cls_num, img_dim=img_dim)
 
         self.loss_names = ['loss', 'x', 'y', 'w', 'h', 'conf', 'cls' ]
-
+        
     def forward(self, x, target=None, requestPrecision=False, epoch=None):
         
         layer_outputs = []
         outputs = []
         losses = dict.fromkeys(self.loss_names, 0)
+        
+        output4paralel = torch.zeros(1, len(self.loss_names)).to(device=x.device) 
 
         for _, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
 
@@ -272,19 +270,30 @@ class DarkNet(nn.Module):
                     outputs += [x]
 
                 else: # training phase
-                    x = module[0](x, target=target)  # module is sequential object, not yolo
+                    x = module[0](x, target=self.set_target(target))  # module is sequential object, not yolo
                     outputs += [x[0]]
 
-                    for ni, xi in zip(self.loss_names, x):
+                    for ii, (ni, xi) in enumerate(zip(self.loss_names, x)):
+                        output4paralel[0, ii] += xi
                         losses[ni] += xi.item()
 
             layer_outputs += [x]
 
         if target is None:
             return torch.cat(outputs, dim=1)
-        else:
-            return sum(outputs), losses
 
+        else:
+            return output4paralel
+
+
+    def set_target(self, target):
+        ''' get valid target'''
+        bboxes = []
+        for ii in range(target.shape[0]):
+            _target = target[ii]
+            _target = _target[_target[:, 0] == 1]
+            bboxes += [_target[:, 1:]]
+        return bboxes
 
     def load_weights(self, weights_path):
         """Parses and loads the weights stored in 'weights_path'"""

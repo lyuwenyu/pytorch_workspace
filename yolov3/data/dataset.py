@@ -11,6 +11,7 @@ import Augmentor
 
 import torchvision.transforms as transforms
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from utils.ops_parse_xml import parse_xml
 from utils.ops_pad_resize import pad_resize
 from utils.ops_show_bbox import show_bbox
@@ -101,25 +102,26 @@ class Dataset(data.Dataset):
 
         img = Image.open(path)
 
-        if random.random() < 0.9:
-            img, bboxes, labels = self.agumentation(img, bboxes, labels)
+        # if random.random() < 0.9:
+        #     img, bboxes, labels = self.agumentation(img, bboxes, labels)
 
-        if random.random() < 0.5:
-            img, bboxes = ops_transform.pad_resize(img, bboxes, size=(self.size, self.size))
-        else:
-            img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
+        # if random.random() < 0.5:
+        #     img, bboxes = ops_transform.pad_resize(img, bboxes, size=(self.size, self.size))
+        # else:
+        #     img, bboxes = ops_transform.resize(img, bboxes, size=(self.size, self.size))
 
+        img, bboxes = ops_transform.pad_resize(img, bboxes, size=(self.size, self.size))
         # here convert bbox to yolo type
         bboxes = ops_transform.xyxy2xywh(bboxes, img.size)  
 
-        if True: 
-            '''shuffle label and bbox in one image,
-            here to handle select same bbox in an image, 
-            when more than one image choose same anchor.
-            '''
-            index = np.random.permutation(range(len(bboxes)))
-            bboxes = bboxes[index]
-            labels = labels[index]
+        # if True: 
+        #     '''shuffle label and bbox in one image,
+        #     here to handle select same bbox in an image, 
+        #     when more than one image choose same anchor.
+        #     '''
+        #     index = np.random.permutation(range(len(bboxes)))
+        #     bboxes = bboxes[index]
+        #     labels = labels[index]
 
         # mask cls bbx
         ngt = len(bboxes)

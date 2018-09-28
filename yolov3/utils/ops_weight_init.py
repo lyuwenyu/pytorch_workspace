@@ -27,7 +27,24 @@ def weight_init(model, path='./model/yolov3.pytorch', state=None):
             m.running_mean.data.copy_(state[state_n+'.running_mean'])
             m.running_var.data.copy_(state[state_n+'.running_var'])
 
+        elif isinstance(m, nn.Linear):
+            pass
+            
     return model
+
+
+def resume(model, optimizer=None, scheduler=None, state_path=''):
+    '''
+    state is dict, keys epoch model scheduler
+    '''
+    state = torch.load(state_path)
+    model.load_state_dict(state['model'])
+
+    if optimizer is not None:
+        optimizer.load_state_dict(state['optimizer'])
+
+    if scheduler is not None:
+        scheduler.load_state_dict(state['scheduler'])
 
 
 if __name__ == '__main__':

@@ -150,7 +150,7 @@ def build_target(pred_boxes, pred_conf, pred_cls, target, scaled_anchors, nA, nC
 
     nB = len(target)
     nT = [len(bs) for bs in target]
-    maxnT = max(nT)
+    # maxnT = max(nT)
 
     tx = torch.zeros(nB, nA, nG, nG).to(device=pred_boxes.device)
     ty = torch.zeros(nB, nA, nG, nG).to(device=pred_boxes.device)

@@ -37,7 +37,7 @@ device = torch.device(device)
 
 model = DarkNet('./_model/yolov3.cfg', cls_num=20)
 # model.load_state_dict(torch.load('yolov3.pytorch'))
-model.load_state_dict(torch.load('./output/ckpt-epoch-00070'))
+model.load_state_dict(torch.load('./output/ckpt-epoch-00060'))
 # model.load_weights('./model/yolov3.weights')
 
 model.eval()
@@ -57,14 +57,14 @@ print('time: ', time.time()-tic)
 
 pred = predx[0]
 
-objectness_threshold = 0.99
-if len(pred[pred[:, 4] > objectness_threshold]) > 0:
-    show_bbox(ops_transform.pad_resize(Image.open(args.path), size=(dim, dim)), pred[pred[:, 4] > objectness_threshold].cpu().data.numpy()[:, 0: 4], xyxy=False, normalized=False)
-else:
-    print(f'--{objectness_threshold}-no objs---')
+# objectness_threshold = 0.99
+# if len(pred[pred[:, 4] > objectness_threshold]) > 0:
+#     show_bbox(ops_transform.pad_resize(Image.open(args.path), size=(dim, dim)), pred[pred[:, 4] > objectness_threshold].cpu().data.numpy()[:, 0: 4], xyxy=False, normalized=False)
+# else:
+#     print(f'--{objectness_threshold}-no objs---')
 
 pred = pred.cpu().data.numpy()
-result = NMS(pred, objectness_threshold=0.99, class_threshold=0.1, iou_threshold=0.4)
+result = NMS(pred, objectness_threshold=0.95, class_threshold=0.7, iou_threshold=0.4)
 
 for k, v in result.items():
     show_bbox(ops_transform.pad_resize(Image.open(args.path), size=(dim, dim)), v[0])
