@@ -130,10 +130,10 @@ class YOLOLayer(nn.Module):
         self.anchor_h = self.scaled_anchors[:, 1]
 
         if VERSION >= '0.4.1':
-            self.grid_x, self.grid_y = torch.meshgrid((torch.arange(self.max_grid), torch.arange(self.max_grid)))
+            self.grid_h, self.grid_w = torch.meshgrid((torch.arange(self.max_grid), torch.arange(self.max_grid)))
         else:
-            self.grid_x = torch.arange(self.max_grid).repeat(self.max_grid, 1)
-            self.grid_y = torch.arange(self.max_grid).repeat(self.max_grid, 1).t()
+            self.grid_w = torch.arange(self.max_grid).repeat(self.max_grid, 1)
+            self.grid_h = torch.arange(self.max_grid).repeat(self.max_grid, 1).t()
 
         self.mseLoss = nn.MSELoss() # size_average=True
         self.bceLoss = nn.BCEWithLogitsLoss()
@@ -143,8 +143,8 @@ class YOLOLayer(nn.Module):
         '''forward '''
         bs = p.shape[0]
         nG = p.shape[2]
-        grid_x = self.grid_x[:nG, :nG].to(dtype=p.dtype, device=p.device)
-        grid_y = self.grid_y[:nG, :nG].to(dtype=p.dtype, device=p.device)
+        grid_x = self.grid_w[:nG, :nG].to(dtype=p.dtype, device=p.device)
+        grid_y = self.grid_h[:nG, :nG].to(dtype=p.dtype, device=p.device)
         # grid_x = torch.arange(nG).repeat(nG, 1).to(dtype=p.dtype, device=p.device)
         # grid_y = torch.arange(nG).repeat(nG, 1).t().to(dtype=p.dtype, device=p.device)
 
@@ -167,8 +167,8 @@ class YOLOLayer(nn.Module):
         # pred_cls = p[..., 5:]
 
         if target is None: # inference phase
-            pred_boxes[..., 0] = x + grid_x
-            pred_boxes[..., 1] = y + grid_y
+            pred_boxes[..., 0] = x + grid_x.float()
+            pred_boxes[..., 1] = y + grid_y.float()
             pred_boxes[..., 2] = width
             pred_boxes[..., 3] = height
 
