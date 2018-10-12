@@ -8,7 +8,7 @@ import torch
 class PriorBox(object):
     def __init__(self, ):
         
-        self.img_dim = 300
+        self.img_dim = 320
         self.strides = [8, 16, 32]
         self.grids = [int(self.img_dim / s) for s in self.strides]
 
@@ -46,7 +46,8 @@ class PriorBox(object):
 
             whs = np.array(whs)
             # whs = torch.from_numpy(np.array(whs))
-            
+            # print(len(whs))
+
             # n = xx.shape[0] * xx.shape[1]
             priors = np.zeros((np.prod(cx.shape), len(whs), 4))
             # print(priors.shape)
@@ -63,7 +64,7 @@ class PriorBox(object):
         # print(anchors.shape)
         anchors = torch.from_numpy(anchors).to(dtype=torch.float)
         # anchors.clamp_(max=1., min=0.)
-
+        # print('anchors: ', anchors.shape)
         return anchors
 
 
@@ -120,6 +121,8 @@ def match(gts, labels, priors, threshold=0.5):
 
     overlaps = jaccard(gts, xywh2xyxy(priors))
 
+    # print(overlaps.shape)
+
     _, best_prior_idx = overlaps.max(1) # best prior for each gt
     best_gt_overlap, best_gt_idx = overlaps.max(0) # best gt for each prior
 
@@ -128,28 +131,28 @@ def match(gts, labels, priors, threshold=0.5):
         best_gt_idx[best_prior_idx[j]] = j
 
     matches = gts[best_gt_idx]
+    print(matches.shape)
 
     # print(len(best_gt_overlap<=0.5))
     # print(torch.sum(best_gt_overlap<=0.5)) #HERE, sum difference to torch.sum
     # print(sum(best_gt_overlap<=0.5))
-    
-    # mask = best_gt_overlap > threshold
 
     # labels target
     clss = labels[best_gt_idx] + 1
     clss[best_gt_overlap < threshold] = 0 # bg
+    # print((clss==0).sum())
 
     # center offet target
     t_cxcy = (matches[:, :2] + matches[:, 2:]) / 2 - priors[:, :2]
     t_cxcy /= priors[:, 2:] 
 
     # w h target
-    t_wh = (matches[:, 2:] - matches[:, :2]) / priors[:, 2:]
+    t_wh = (matches[:, 2:] - matches[:, :2]) / priors[:, 2:] # HERE. must larger than 0
     t_wh = torch.log(t_wh + 1e-10)
 
     # cx cy w h target
     locs = torch.cat((t_cxcy, t_wh), dim=1)
-    print(locs.shape, clss.shape)
+    # print(locs.shape, clss.shape)
 
     return locs, clss
 
