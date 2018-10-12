@@ -116,9 +116,8 @@ def xywh2xyxy(bbox):
 def match(gts, labels, priors, threshold=0.5):
     '''
     '''
-    # print(gts.shape)
-    # print(priors.shape)
-    # print(xywh2xyxy(priors).shape)
+    assert gts.shape[0] == labels.shape[0], ''
+
     overlaps = jaccard(gts, xywh2xyxy(priors))
 
     _, best_prior_idx = overlaps.max(1) # best prior for each gt
@@ -133,6 +132,8 @@ def match(gts, labels, priors, threshold=0.5):
     # print(len(best_gt_overlap<=0.5))
     # print(torch.sum(best_gt_overlap<=0.5)) #HERE, sum difference to torch.sum
     # print(sum(best_gt_overlap<=0.5))
+    
+    # mask = best_gt_overlap > threshold
 
     # labels target
     clss = labels[best_gt_idx] + 1
