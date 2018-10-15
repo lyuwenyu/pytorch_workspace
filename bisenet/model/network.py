@@ -20,8 +20,8 @@ class ARM(nn.Module):
         '''
         forward
         '''
-        # w = self.m(x)
-        return self.m(x) * x
+        w = self.m(x)
+        return w * x
 
 
 class FFM(nn.Module):
@@ -72,6 +72,7 @@ class SpatialNet(nn.Module):
             nn.ReLU(),
         )
     
+    
     def forward(self, x):
         '''
         '''
@@ -91,21 +92,19 @@ class ContextNet(nn.Module):
     def forward(self, x):
         '''
         '''
-        # img_dim = x.shape[-1]
-        # outs = [m(x) for m in self.basenet]
-        # out_feas = []
 
-        tic = time.time()
+        # tic = time.time()
         outs = []
         for _, m in enumerate(self.basenet):
             x = m(x)
             outs += [x]
-        print('resnet18: ', time.time() - tic)
+        # print('resnet18: ', time.time() - tic)
 
         fea_att_16 = self.att_16(outs[-2])
+        
         fea_att_32 = self.att_32(outs[-1])
         fea_global = self.global_ave_pooling(outs[-1])
-
+        
         fea_att_32 = fea_att_32 * fea_global
         fea_att_32 = F.interpolate(fea_att_32, scale_factor=4, mode='bilinear')
         fea_att_16 = F.interpolate(fea_att_16, scale_factor=2, mode='bilinear')
@@ -127,17 +126,17 @@ class BiSeNet(nn.Module):
     def forward(self, x):
         '''
         '''
-        tic = time.time()
+        # tic = time.time()
         out_spatial = self.spatial(x)
-        print('spatial: ', time.time() - tic)
-
-        tic = time.time()
+        # print('spatial: ', time.time() - tic)
+        
+        # tic = time.time()
         out_context = self.context(x)
-        print('context: ', time.time() - tic)
-
-        tic = time.time()
+        # print('context: ', time.time() - tic)
+        
+        # tic = time.time()
         feat = self.ffm(out_spatial, out_context)
-        print('ffm: ', time.time() - tic)
+        # print('ffm: ', time.time() - tic)
 
         feat = F.interpolate(feat, scale_factor=8, mode='bilinear')
         logits = self.conv(feat)
