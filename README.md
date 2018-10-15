@@ -33,5 +33,9 @@ reference:
 
 ### yolo-v3  
 reference:  
-[yolo-v3]()  
+[yolo-v3]()   
 
+
+### bisenet  
+reference:    
+[bisenet]()   
