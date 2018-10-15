@@ -89,6 +89,8 @@ class ContextNet(nn.Module):
         self.att_32 = ARM(512)
         self.global_ave_pooling = nn.AdaptiveAvgPool2d(1)
 
+        # self.conv32 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+
     def forward(self, x):
         '''
         '''
@@ -101,15 +103,14 @@ class ContextNet(nn.Module):
         # print('resnet18: ', time.time() - tic)
 
         fea_att_16 = self.att_16(outs[-2])
-        
         fea_att_32 = self.att_32(outs[-1])
         fea_global = self.global_ave_pooling(outs[-1])
-        
-        fea_att_32 = fea_att_32 * fea_global
+
+        fea_att_32 = fea_att_32 * fea_global # * or +
         fea_att_32 = F.interpolate(fea_att_32, scale_factor=4, mode='bilinear')
         fea_att_16 = F.interpolate(fea_att_16, scale_factor=2, mode='bilinear')
-
-        out = torch.cat([fea_att_16, fea_att_32], dim=1)
+        # out = torch.cat([fea_att_16, fea_att_32, fea_global.expand_as(fea_att_32)], dim=1) # good options
+        out = torch.cat([outs[-3], fea_att_16, fea_att_32], dim=1) # good, fea_global is different from above
 
         return out
 
@@ -120,8 +121,8 @@ class BiSeNet(nn.Module):
 
         self.spatial = SpatialNet()
         self.context = ContextNet()
-        self.ffm = FFM(256, 256 + 512)
-        self.conv = nn.Conv2d(256+256+512, num_classes, kernel_size=1, stride=1)
+        self.ffm = FFM(256, 128+256+512)
+        self.conv = nn.Conv2d(256 + 128+256+512, num_classes, kernel_size=1, stride=1)
 
     def forward(self, x):
         '''
@@ -151,8 +152,6 @@ if __name__ == '__main__':
 
     # m = models.resnet18(pretrained=True)
     data = torch.rand(2, 3, 512, 512)
-
-
 
     # arm = ARM(10)
     # out = arm(data)
