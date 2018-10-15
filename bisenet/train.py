@@ -14,7 +14,7 @@ import argparse
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 parser = argparse.ArgumentParser()
 parser.add_argument('--device_ids', type=list, default=[0, 1])
-parser.add_argument('--num_classes', type=int, default=20)
+parser.add_argument('--num_classes', type=int, default=5)
 parser.add_argument('--resume_path', type=str, default='') # ./output/state-ckpt-epoch-00000
 parser.add_argument('--loss_step', type=int, default=10)
 parser.add_argument('--save_step', type=int, default=5)
@@ -31,17 +31,17 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
 
-    model = BiSeNet(num_classes=2)
+    model = BiSeNet(num_classes=args.num_classes)
     dataset = Dataset('./data')
-    dataloader = data.DataLoader(dataset, batch_size=2, num_workers=1)
+    dataloader = data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=1)
 
     model.to(device=device)
     model.train()
 
     optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.95)
-    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[5, 10], gamma=0.1)
+    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[500, 700], gamma=0.1)
 
-    for e in range(100):
+    for e in range(800):
         for _, (imgs, msks) in enumerate(dataloader):
 
             # print(imgs.shape, msks.shape)
@@ -49,9 +49,14 @@ if __name__ == '__main__':
             imgs = imgs.to(device=device)
             msks = msks.to(device=device, dtype=torch.long)
 
+            num = [torch.sum(msks == i).item() for i in range(args.num_classes)]
+            num = [sum(num)/n for n in num]
+            weight = torch.tensor([n/sum(num) for n in num]).to(device=device, dtype=torch.float32)
+            # print(weight)
+
             logits = model(imgs)
 
-            loss = F.cross_entropy(logits, msks)
+            loss = F.cross_entropy(logits, msks, weight=weight)
 
             optimizer.zero_grad()
             loss.backward()
