@@ -11,7 +11,9 @@ label_color = OrderedDict([
 
 label_map = dict(zip(label_color.keys(), range(len(label_color.keys()))))
 label_color_map = {label_color[k]: v for k, v in label_map.items()}
+label_id_color = {label_map[k]: v for k, v in label_color.items()}
 
+# print(label_id_color)
 # print(label_color)
 # print(label_map)
 # print(label_color_map)
