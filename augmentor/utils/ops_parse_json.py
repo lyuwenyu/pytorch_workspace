@@ -48,11 +48,11 @@ def load_json(path):
 
 if __name__ == '__main__':
 
-    paths = glob.glob('/home/wenyu/workspace/dataset/fisheye/quadrilateral/*.json')
+    paths = glob.glob('.json')
     for path in paths:
         data = load_json(path)
     
-    img = Image.open('/home/wenyu/workspace/dataset/fisheye/quadrilateral/153795440566.jpg')
+    img = Image.open('.jpg')
     draw = ImageDraw.Draw(img)
 
     for p in data['points']:
