@@ -86,14 +86,14 @@ class textbox_layer(nn.Module):
             pred_boxes[..., 3] = height
 
             # TODO using which vertex is a problem here.
-            pred_vertex[..., 0] = p1x * anchor_w + (grid_x.float() - width / 2) 
-            pred_vertex[..., 1] = p1y * anchor_h + (grid_y.float() - height / 2 )
-            pred_vertex[..., 2] = p2x * anchor_w + (grid_x.float() + width / 2) 
-            pred_vertex[..., 3] = p2y * anchor_h + (grid_y.float() - height / 2 )
-            pred_vertex[..., 4] = p3x * anchor_w + (grid_x.float() + width / 2) 
-            pred_vertex[..., 5] = p3y * anchor_h + (grid_y.float() + height / 2 )
-            pred_vertex[..., 6] = p4x * anchor_w + (grid_x.float() - width / 2) 
-            pred_vertex[..., 7] = p4y * anchor_h + (grid_y.float() + height / 2 )
+            pred_vertex[..., 0] = p1x * anchor_w + (grid_x.float() - anchor_w / 2) 
+            pred_vertex[..., 1] = p1y * anchor_h + (grid_y.float() - anchor_h / 2 )
+            pred_vertex[..., 2] = p2x * anchor_w + (grid_x.float() + anchor_w / 2) 
+            pred_vertex[..., 3] = p2y * anchor_h + (grid_y.float() - anchor_h / 2 )
+            pred_vertex[..., 4] = p3x * anchor_w + (grid_x.float() + anchor_w / 2) 
+            pred_vertex[..., 5] = p3y * anchor_h + (grid_y.float() + anchor_h / 2 )
+            pred_vertex[..., 6] = p4x * anchor_w + (grid_x.float() - anchor_w / 2) 
+            pred_vertex[..., 7] = p4y * anchor_h + (grid_y.float() + anchor_h / 2 )
 
             out = torch.cat((
                 pred_boxes.view(bs, -1, 4) * self.stride,
