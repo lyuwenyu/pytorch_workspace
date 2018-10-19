@@ -9,19 +9,20 @@ import glob
 
 sys.path.insert(0, '/home/wenyu/workspace/pytorch_workspace/')
 # sys.path.insert(0, '/home/wenyu/workspace/pytorch_workspace/')
-import yolov3.utils.ops_load_json as ops_load_json
+import yolov3.utils.ops_parse_json as ops_parse_json
 import augmentor.utils.pipeline as pipeline
 
-from .ops_label_color import label_color, label_color_map
+from data.ops_label_color import label_color, label_color_map
 
-blob = ops_load_json.load_json('./data/00001.json')
+blob = ops_parse_json.load_json('./data/00001.json')
 img = Image.open('./data/00001.jpg')
 # print(blob)]
+print(blob)
 
 anno = Image.new('RGB', img.size, color=label_color['background'])
 anno_draw = ImageDraw.Draw(anno)
 
-for lab, pts in zip(blob['label'], blob['points']):
+for lab, pts in zip(blob['labels'], blob['points']):
     anno_draw.polygon(pts, fill=label_color[lab])
 
 img = img.resize([512, 512])
@@ -65,13 +66,13 @@ class Dataset(data.Dataset):
 
     def __getitem__(self, i):
         
-        blob = ops_load_json.load_json(self.jsons[i])
+        blob = ops_parse_json.load_json(self.jsons[i])
         img = Image.open(os.path.join(self.data_dir, blob['imagePath']))
 
         # mask label
         anno = Image.new('RGB', img.size, color=label_color['background'])
         anno_draw = ImageDraw.Draw(anno)
-        for lab, pts in zip(blob['label'], blob['points']):
+        for lab, pts in zip(blob['labels'], blob['points']):
             anno_draw.polygon(pts, fill=label_color[lab])
 
         # some augmentation for image anno
@@ -88,7 +89,7 @@ class Dataset(data.Dataset):
             msk = np.all(ann_arr == np.array(k).reshape(1, 1, 3), axis=2)
             ann_msk[msk] = v
 
-        if False:
+        if True:
             img.show()
             anno.show()
             # Image.fromarray(ann_msk * 50).show()
