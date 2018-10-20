@@ -253,19 +253,39 @@ def build_quad_target(pred_boxes, target, scaled_anchors, nA, nC, nG, requestPre
             tw[b, a, gj, gi] = torch.log(gw / scaled_anchors[a, 0] + 1e-15)
             th[b, a, gj, gi] = torch.log(gh / scaled_anchors[a, 1] + 1e-15)
 
-            # anchor clockwise points
-            aw = scaled_anchors[a, 0]
-            ah = scaled_anchors[a, 1]
-            ap1x = gi.float() - aw / 2
-            ap1y = gj.float() - ah / 2
-            ap2x = gi.float() + aw / 2
-            ap2y = gj.float() - ah / 2
-            ap3x = gi.float() + aw / 2
-            ap3y = gj.float() + ah / 2            
-            ap4x = gi.float() - aw / 2
-            ap4y = gj.float() + ah / 2 
+            # anchor clockwise points, bingxing TODO
+            # aw = scaled_anchors[a, 0]
+            # ah = scaled_anchors[a, 1]
+            # ap1x = gi.float() - aw / 2
+            # ap1y = gj.float() - ah / 2
+            # ap2x = gi.float() + aw / 2
+            # ap2y = gj.float() - ah / 2
+            # ap3x = gi.float() + aw / 2
+            # ap3y = gj.float() + ah / 2            
+            # ap4x = gi.float() - aw / 2
+            # ap4y = gj.float() + ah / 2 
+            # txp1[b, a, gj, gi] = (p1[0] - ap1x) / aw
+            # typ1[b, a, gj, gi] = (p1[1] - ap1y) / ah
+            # txp2[b, a, gj, gi] = (p2[0] - ap2x) / aw
+            # typ2[b, a, gj, gi] = (p2[1] - ap2y) / ah
+            # txp3[b, a, gj, gi] = (p3[0] - ap3x) / aw
+            # typ3[b, a, gj, gi] = (p3[1] - ap3y) / ah
+            # txp4[b, a, gj, gi] = (p4[0] - ap4x) / aw
+            # typ4[b, a, gj, gi] = (p4[1] - ap4y) / ah
 
-            # points target
+            # # pred bbox points, chuanxing TODO
+            cx = pred_boxes[b, a, gj, gi, 0]
+            cy = pred_boxes[b, a, gj, gi, 1]
+            aw = pred_boxes[b, a, gj, gi, 2]
+            ah = pred_boxes[b, a, gj, gi, 3]
+            ap1x = cx - aw / 2
+            ap1y = cy - ah / 2
+            ap2x = cx + aw / 2
+            ap2y = cy - ah / 2
+            ap3x = cx + aw / 2
+            ap3y = cy + ah / 2
+            ap4x = cx - aw / 2
+            ap4y = cy + ah / 2 
             txp1[b, a, gj, gi] = (p1[0] - ap1x) / aw
             typ1[b, a, gj, gi] = (p1[1] - ap1y) / ah
             txp2[b, a, gj, gi] = (p2[0] - ap2x) / aw
@@ -275,6 +295,7 @@ def build_quad_target(pred_boxes, target, scaled_anchors, nA, nC, nG, requestPre
             txp4[b, a, gj, gi] = (p4[0] - ap4x) / aw
             typ4[b, a, gj, gi] = (p4[1] - ap4y) / ah
 
+            # target 
             tcls[b, a, gj, gi, tc] = 1
             tconf[b, a, gj, gi] = 1
             conf_mask[b, a, gj, gi] = 1

@@ -79,22 +79,37 @@ class textbox_layer(nn.Module):
         pred_conf = p[..., 12] 
         pred_cls =  p[..., 13:]
 
+        pred_boxes[..., 0] = x + grid_x.float()
+        pred_boxes[..., 1] = y + grid_y.float()
+        pred_boxes[..., 2] = width
+        pred_boxes[..., 3] = height
+        
         if target is None: # inference phase
-            pred_boxes[..., 0] = x + grid_x.float()
-            pred_boxes[..., 1] = y + grid_y.float()
-            pred_boxes[..., 2] = width
-            pred_boxes[..., 3] = height
+            # pred_boxes[..., 0] = x + grid_x.float()
+            # pred_boxes[..., 1] = y + grid_y.float()
+            # pred_boxes[..., 2] = width
+            # pred_boxes[..., 3] = height
 
-            # TODO using which vertex is a problem here.
-            pred_vertex[..., 0] = p1x * anchor_w + (grid_x.float() - anchor_w / 2) 
-            pred_vertex[..., 1] = p1y * anchor_h + (grid_y.float() - anchor_h / 2 )
-            pred_vertex[..., 2] = p2x * anchor_w + (grid_x.float() + anchor_w / 2) 
-            pred_vertex[..., 3] = p2y * anchor_h + (grid_y.float() - anchor_h / 2 )
-            pred_vertex[..., 4] = p3x * anchor_w + (grid_x.float() + anchor_w / 2) 
-            pred_vertex[..., 5] = p3y * anchor_h + (grid_y.float() + anchor_h / 2 )
-            pred_vertex[..., 6] = p4x * anchor_w + (grid_x.float() - anchor_w / 2) 
-            pred_vertex[..., 7] = p4y * anchor_h + (grid_y.float() + anchor_h / 2 )
-
+            # TODO using which vertex is a problem here., bingxin
+            # pred_vertex[..., 0] = p1x * anchor_w + (grid_x.float() - anchor_w / 2) 
+            # pred_vertex[..., 1] = p1y * anchor_h + (grid_y.float() - anchor_h / 2 )
+            # pred_vertex[..., 2] = p2x * anchor_w + (grid_x.float() + anchor_w / 2) 
+            # pred_vertex[..., 3] = p2y * anchor_h + (grid_y.float() - anchor_h / 2 )
+            # pred_vertex[..., 4] = p3x * anchor_w + (grid_x.float() + anchor_w / 2) 
+            # pred_vertex[..., 5] = p3y * anchor_h + (grid_y.float() + anchor_h / 2 )
+            # pred_vertex[..., 6] = p4x * anchor_w + (grid_x.float() - anchor_w / 2) 
+            # pred_vertex[..., 7] = p4y * anchor_h + (grid_y.float() + anchor_h / 2 )
+            
+            # # TODO chuanxing
+            pred_vertex[..., 0] = p1x * pred_boxes[..., 2] + (pred_boxes[..., 0] - pred_boxes[..., 2] / 2) 
+            pred_vertex[..., 1] = p1y * pred_boxes[..., 3] + (pred_boxes[..., 1] - pred_boxes[..., 3] / 2)
+            pred_vertex[..., 2] = p2x * pred_boxes[..., 2] + (pred_boxes[..., 0] + pred_boxes[..., 2] / 2) 
+            pred_vertex[..., 3] = p2y * pred_boxes[..., 3] + (pred_boxes[..., 1] - pred_boxes[..., 3] / 2)
+            pred_vertex[..., 4] = p3x * pred_boxes[..., 2] + (pred_boxes[..., 0] + pred_boxes[..., 2] / 2) 
+            pred_vertex[..., 5] = p3y * pred_boxes[..., 3] + (pred_boxes[..., 1] + pred_boxes[..., 3] / 2)
+            pred_vertex[..., 6] = p4x * pred_boxes[..., 2] + (pred_boxes[..., 0] - pred_boxes[..., 2] / 2) 
+            pred_vertex[..., 7] = p4y * pred_boxes[..., 3] + (pred_boxes[..., 1] + pred_boxes[..., 3] / 2)
+            
             out = torch.cat((
                 pred_boxes.view(bs, -1, 4) * self.stride,
                 pred_vertex.view(bs, -1, 8) * self.stride,
@@ -107,7 +122,7 @@ class textbox_layer(nn.Module):
         else: # train phase TODO 
 
             tx, ty, tw, th, txp1, typ1, txp2, typ2, txp3, typ3, txp4, typ4, tconf, tcls, conf_mask = build_quad_target(
-                                                            pred_boxes.data, # here 
+                                                            pred_boxes.data, # here .data
                                                             target, 
                                                             self.scaled_anchors.to(device=p.device), 
                                                             self.nA, self.nC, nG,
@@ -131,22 +146,23 @@ class textbox_layer(nn.Module):
                 lcls = self.bceLoss(pred_cls[mask], tcls[mask])
                 # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
 
-                lp1x = self.mseLoss(p1x[mask], txp1[mask]) # self.smoothl1loss
-                lp1x = self.mseLoss(p1y[mask], typ1[mask])
-                lp2x = self.mseLoss(p2x[mask], txp2[mask])
-                lp2y = self.mseLoss(p2y[mask], typ2[mask])
-                lp3x = self.mseLoss(p3x[mask], txp3[mask])
-                lp3y = self.mseLoss(p3y[mask], typ3[mask])
-                lp4x = self.mseLoss(p4x[mask], txp4[mask])
-                lp4y = self.mseLoss(p4y[mask], typ4[mask])
+                lp1x = self.smoothl1loss(p1x[mask], txp1[mask]) # self.smoothl1loss
+                lp1y = self.smoothl1loss(p1y[mask], typ1[mask])
+                lp2x = self.smoothl1loss(p2x[mask], txp2[mask])
+                lp2y = self.smoothl1loss(p2y[mask], typ2[mask])
+                lp3x = self.smoothl1loss(p3x[mask], txp3[mask])
+                lp3y = self.smoothl1loss(p3y[mask], typ3[mask])
+                lp4x = self.smoothl1loss(p4x[mask], txp4[mask])
+                lp4y = self.smoothl1loss(p4y[mask], typ4[mask])
 
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 6
-                lp1x, lp1x, lp2x, lp2y, lp3x, lp3y, lp4x, lp4y = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 8
+                lp1x, lp1y, lp2x, lp2y, lp3x, lp3y, lp4x, lp4y = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 8
 
             # loss1 = (lx + ly + lw + lh + lconf + lcls) * numobj / (bs + 1e-8)
-            loss = (lx + ly + lw + lh + lconf + lcls + lp1x + lp1x + lp2x + lp2y + lp3x + lp3y + lp4x + lp4y) * numobj / (bs + 1e-8)
+            loss = (lx + ly + lw + lh + lconf + lcls + lp1x + lp1y + lp2x + lp2y + lp3x + lp3y + lp4x + lp4y) * numobj / (bs + 1e-8)
+            # loss = (lconf + lcls + lp1x + lp1x + lp2x + lp2y + lp3x + lp3y + lp4x + lp4y) * numobj / (bs + 1e-8) # just regress quadralateral is also OK, but not compare mAP
 
 
-            return loss, lx, ly, lw, lh, lp1x, lp1x, lp2x, lp2y, lp3x, lp3y, lp4x, lp4y, lconf, lcls
+            return loss, lx, ly, lw, lh, lp1x, lp1y, lp2x, lp2y, lp3x, lp3y, lp4x, lp4y, lconf, lcls
 

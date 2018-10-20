@@ -136,6 +136,7 @@ class DarkNet(nn.Module):
         
         layer_outputs = []
         outputs = []
+        losses = []
         # losses = dict.fromkeys(self.loss_names, 0)
         
         # output4paralel = np.zeros((1, len(self.loss_names)))
@@ -170,6 +171,7 @@ class DarkNet(nn.Module):
                     # for ii, (ni, xi) in enumerate(zip(self.loss_names, x)):
                     #     output4paralel[0, ii] += [xi.item()]
                     #     losses[ni] += xi.item()
+                    losses += [[xi.item() for xi in x]]
 
             layer_outputs += [x]
 
@@ -177,8 +179,8 @@ class DarkNet(nn.Module):
             return torch.cat(outputs, dim=1)
 
         else:
-            # print(outputs)
-            return sum(outputs) # 
+            # return sum(outputs)
+            return sum(outputs), losses # 
 
 
     def set_target(self, target):
