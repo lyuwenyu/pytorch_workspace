@@ -96,7 +96,7 @@ def decode_pascalvoc(filename=''):
     return blob
 
 
-def encode_pascalvoc(blob, file_path=''):
+def encode_pascalvoc(blob, file_path='', classes_map=dict):
     '''
     blob = {
         'folder': '',
@@ -105,6 +105,8 @@ def encode_pascalvoc(blob, file_path=''):
         
     }
     '''
+    assert isinstance(classes_map, dict) or classes_map is None, ''
+
     new_xml = ET.Element('annotation')
 
     folder = ET.SubElement(new_xml, 'folder')
@@ -135,7 +137,11 @@ def encode_pascalvoc(blob, file_path=''):
 
         objectx = ET.SubElement(new_xml, 'object')
         name = ET.SubElement(objectx, 'name')
-        name.text = blob['classes'][i]
+        if classes_map is not None:
+            name.text = classes_map.get(blob['classes'][i], blob['classes'][i])
+        else:
+            name.text = blob['classes'][i]
+            
         pose = ET.SubElement(objectx, 'pose')
         pose.text = 'Unspecified'
         truncated = ET.SubElement(objectx, 'truncated')
@@ -157,7 +163,7 @@ def encode_pascalvoc(blob, file_path=''):
     # ET.dump(new_xml)
 
 
-def labelme2pascalvoc(filename='', save_dir='.', save_img=True):
+def labelme2pascalvoc(filename='', save_dir='.', classes_map=None, save_img=True):
     '''
     labelme json to pascalvoc xml
     '''
@@ -171,11 +177,13 @@ def labelme2pascalvoc(filename='', save_dir='.', save_img=True):
         jpgname = os.path.join(save_dir, xmlname.replace('.xml', '.jpg'))
         blob['image'].save(jpgname)
 
-    encode_pascalvoc(blob, xmlname)
+    encode_pascalvoc(blob, xmlname, classes_map)
 
 
 
 if __name__ == '__main__':
 
+
     filename = '../augmentor/utils/00001.json'
+
     labelme2pascalvoc(filename)
