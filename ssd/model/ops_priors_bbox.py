@@ -9,19 +9,18 @@ import os, sys
 sys.path.insert(0, '/home/wenyu/workspace/pytorch_workspace/')
 from yolov3.utils import ops_show_bbox
 from augmentor.utils import ops_visualization
+from .config import cfg
 
 class PriorBox(object):
     def __init__(self, ):
         
-        self.img_dim = 512
-        self.strides = [8, 16, 32]
-        self.grids = [int(self.img_dim / s) for s in self.strides]
-
-        # anchor size
-        self.base_sizes = [80, 160, 240]
-        self.area_rarios = [[1, 2], [1, 2], [1, 2]] # w/h 
-        self.aspect_rarios = [[2, 1/2], [2, 1/2], [2, 1/2]]
-
+        self.img_dim = cfg['img_dim']
+        self.strides = cfg['strides']
+        self.grids = cfg['grids']
+        self.aspect_rarios = cfg['apsect_ratios']
+        self.min_sizes = cfg['min_sizes']
+        self.max_sizes = cfg['max_sizes']
+        
     def __call__(self, VISUALIZATION=True):
         '''
         generate prior bbox, [cx, cy, w, h] and normalized
@@ -38,39 +37,38 @@ class PriorBox(object):
         
             # width height
             whs = []
-            base = self.base_sizes[i] / self.img_dim
+            base = self.min_sizes[i] / self.img_dim
+            whs += [[base, base]]
 
-            for ar in self.area_rarios[i]:
-                whs += [[base * math.sqrt(ar), base * math.sqrt(ar)]]
+            base_prime = math.sqrt(base * (self.max_sizes[i] / self.img_dim))
+            whs += [[base_prime, base_prime]]
 
             for ar in self.aspect_rarios[i]:
                 whs += [[base * math.sqrt(ar), base / math.sqrt(ar)]]
+                whs += [[base / math.sqrt(ar), base * math.sqrt(ar)]]
 
             whs = np.array(whs)
-            print(whs.shape)
-            # whs = torch.from_numpy(np.array(whs))
+            # print(whs.shape)
 
-            # priors = np.zeros((np.prod(cx.shape), len(whs), 4))
-            priors = np.zeros((len(whs), grid, grid, 4)) # a, h, w, 4
-            priors[:, :, :, 0] = cx
-            priors[:, :, :, 1] = cy
-            priors[:, :, :, 2:] = whs.reshape(-1, 1, 1, 2)
+            priors = np.zeros((grid, grid, len(whs), 4)) # h, w, a, 4
+            priors[:, :, :, 0] = cx[:, :, np.newaxis]
+            priors[:, :, :, 1] = cy[:, :, np.newaxis]
+            priors[:, :, :, 2:] = whs
+
+            # print(priors[0, 0, 0, :])
 
             anchors += [priors.reshape(-1, 4)]
 
             if VISUALIZATION:
                 print(priors.shape)
-                # img = Image.new('RGB', (self.img_dim, self.img_dim))
-                img = Image.open('./001.png').resize((self.img_dim, self.img_dim))
-                # ops_show_bbox.show_bbox(img, priors.reshape(-1, 4)[800:1000:20], normalized=True, xyxy=False)
-                ops_visualization.show_points(img, priors[0:1, :, :, :2].reshape(-1, 2), normalized=True, radius=2, color='blue', show=False)
-                ops_visualization.show_points(img, priors[0:1, grid//2, grid//2, :2], normalized=True, radius=2, color='red', show=False)
-                ops_show_bbox.show_bbox(img, priors[:, grid//2, grid//2, :], xyxy=False, normalized=True)
+                img = Image.open('./model/001.png').resize((self.img_dim, self.img_dim))
+                # ops_visualization.show_points(img, priors[:, :, :2].reshape(-1, 2), normalized=True, radius=2, color='blue', show=False)
+                ops_visualization.show_points(img, priors[grid//3, grid//2, :, :2], normalized=True, radius=2, color='red', show=False)
+                ops_show_bbox.show_bbox(img, priors[grid//3, grid//2, :, :], xyxy=False, normalized=True)
 
         anchors = np.concatenate(anchors, axis=0)
-        # anchors = torch.cat(anchors, dim=0)
         anchors = torch.from_numpy(anchors).to(dtype=torch.float)
-        # anchors.clamp_(max=1., min=0.)
+
         print('anchors: ', anchors.shape)
         return anchors
 
@@ -109,9 +107,6 @@ def jaccard(boxa, boxb):
     area_b = ((boxb[:, 2] - boxb[:, 0]) * (boxb[:, 3] - boxb[:, 1])).unsqueeze(0).expand_as(inter)
     union = area_a + area_b - inter
     iou = inter / union
-
-    print(iou[iou>0.5])
-    c+=1
 
     return iou
 

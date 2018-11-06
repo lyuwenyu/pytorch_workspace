@@ -15,21 +15,27 @@ class SSD(nn.Module):
         self.basenet = models.resnet50(pretrained=True)
         self.basenet = nn.ModuleList(self.basenet.children())[:-2]
         self.attr_num = num_classes + 1 + 4 
-        self.encodes = nn.ModuleList([nn.Conv2d(c, self.attr_num * s, 1, 1) for c, s in zip([512, 1024, 2048], [4, 4, 4])]) # for resnet50
-        # self.encodes = nn.ModuleList([nn.Conv2d(c, self.attr_num * s, 1, 1) for c, s in zip([128, 256, 512], [5, 7, 7])])
-        self.ssdlayer = SSDLayer()
+        # self.encodes = nn.ModuleList([nn.Conv2d(c, self.attr_num * s, 1, 1) for c, s in zip([512, 1024, 2048], [4, 4, 4])]) # for resnet50
+        self.encodes = nn.ModuleList([nn.Conv2d(c, self.attr_num * s, 1, 1) for c, s in zip([1024, 2048, ], [4, 4])])
+        self.n = len(self.encodes)
+
+        # self.ssdlayer = SSDLayer()
      
     def forward(self, x, target=None):
         
         features = []
 
-        for m in self.basenet[:-3]:
+        for m in self.basenet[:-self.n]:
             x = m(x)
-        
-        for i, m in enumerate(self.basenet[-3:]):
+            print('x.shape', x.shape)
+
+        for i, m in enumerate(self.basenet[-self.n:]):
             x = m(x)
-            # print(x.shape)
+            print('x.shape', x.shape)
+
             out = self.encodes[i](x)
+            print('out.shape', out.shape)
+
             out = out.view(out.shape[0], -1, self.attr_num, out.shape[2], out.shape[3]).permute(0, 1, 3, 4, 2).contiguous()
             out = out.view(out.shape[0], -1, self.attr_num).contiguous()
             features += [out]
@@ -39,6 +45,7 @@ class SSD(nn.Module):
         out = self.ssdlayer(features, target)
 
         return out
+        # return 0
 
 
 

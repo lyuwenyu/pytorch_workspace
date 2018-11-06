@@ -11,23 +11,24 @@ import numpy as np
 import os, sys 
 # sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from model.build_ssd_model import SSD
+# from model.build_ssd_model import SSD
+from model.vgg_ssd300 import build_ssd
 from data.dataset import Dataset
 
 import argparse
 
-device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 parser = argparse.ArgumentParser()
 parser.add_argument('--device_ids', type=list, default=[0, 1])
-parser.add_argument('--num_classes', type=int, default=20)
+parser.add_argument('--num_classes', type=int, default=21)
 parser.add_argument('--resume_path', type=str, default='') # ./output/state-ckpt-epoch-00000
 parser.add_argument('--loss_step', type=int, default=10)
 parser.add_argument('--save_step', type=int, default=5)
-parser.add_argument('--img_dims', type=list, default=[512, ]) # 608, 320
-parser.add_argument('--batch_sizes', type=list, default=[1, ]) # 16, 48
-parser.add_argument('--num_workers', type=list, default=1)
+parser.add_argument('--img_dims', type=list, default=[300, ]) # 608, 320
+parser.add_argument('--batch_sizes', type=list, default=[32, ]) # 16, 48
+parser.add_argument('--num_workers', type=list, default=5)
 parser.add_argument('--epoches', type=int, default=101)
-parser.add_argument('--lr', type=float, default=0.0001)
+parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--momentum', type=float, default=0.9)
 parser.add_argument('--milestones', type=list, default=[40, 70, 90])
 parser.add_argument('--gamma', type=float, default=0.1)
@@ -47,6 +48,7 @@ def train(model, dataloader, optimizer, scheduler, epoch=0):
     step_time = []
 
     for i, (images, targets) in enumerate(dataloader):
+
         images = images.to(torch.device(device))
         targets = targets.to(torch.device(device))
 
@@ -57,6 +59,7 @@ def train(model, dataloader, optimizer, scheduler, epoch=0):
         #     losses = losses.sum()
         # else:
         #     losses = model(images, targets)
+
         losses = model(images, targets)
         
         optimizer.zero_grad()
@@ -108,7 +111,8 @@ if __name__ == '__main__':
     datasets = [Dataset(size=sz) for sz in args.img_dims]
     dataloaders = [data.DataLoader(d, batch_size=bs, shuffle=True, num_workers=args.num_workers) for d, bs in zip(datasets, args.batch_sizes)]
 
-    model = SSD(num_classes=args.num_classes) 
+    model = build_ssd(num_classes=args.num_classes)
+    # model = SSD() 
     model = model.to(torch.device(device))
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
@@ -128,10 +132,12 @@ if __name__ == '__main__':
     while e < args.epoches:
         if e < 10: 
             train(model, dataloaders[0], optimizer, scheduler, e)
+            pass
             e += 1
         else:
             random.shuffle(dataloaders)
             for i, dtloader in enumerate(dataloaders):
                 train(model, dtloader, optimizer, scheduler, e + i)
+                pass
             e += len(dataloaders)
 

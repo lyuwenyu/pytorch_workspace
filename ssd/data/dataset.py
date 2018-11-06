@@ -30,7 +30,7 @@ class Dataset(data.Dataset):
         self.image_dir
         self.label_map
         '''
-        root = '/home/wenyu/workspace/dataset/voc/VOCdevkit/VOC2007'
+        root = '../../dataset/voc/VOCdevkit/VOC2007'
         self.image_dir = os.path.join(root, 'JPEGImages')
         self.anns = glob.glob(os.path.join(root, 'Annotations', '*.xml'))
         self.imgs = [path.replace('Annotations', 'JPEGImages').replace('xml', 'jpg') for path in self.anns]
@@ -120,7 +120,7 @@ class Dataset(data.Dataset):
         ngt = len(bboxes)
 
         target_tensor[:ngt, 2:] = torch.from_numpy(bboxes) / self.size # normalize coor
-        target_tensor[:ngt, 1] = torch.tensor(labels)
+        target_tensor[:ngt, 1] = torch.tensor(labels) # from 1, bg is 0
         target_tensor[:ngt, 0] = 1
         
         
@@ -138,9 +138,6 @@ if __name__ == '__main__':
     for i, (imgs, targets) in enumerate(dataloader):
 
         print(i)
-        
+        print(imgs.shape, targets.shape)
         ops_show_bbox.show_tensor_bbox(imgs[0], targets[0], xyxy=True, normalized=True)
-
-        print(imgs.shape, targets.shape )
-
         break
