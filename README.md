@@ -19,7 +19,6 @@ reference:
 [pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)  
 
 
-
 ### learn to play attention  
 reference:   
 [learn to play attention]()
@@ -36,6 +35,11 @@ reference:
 [yolo-v3]()   
 
 
+### retina  
+reference:  
+[retina]()
+
+
 ### bisenet  
 reference:    
-[bisenet]()   
+[bisenet]()  
