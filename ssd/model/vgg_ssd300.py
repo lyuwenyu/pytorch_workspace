@@ -35,8 +35,15 @@ def vgg(cfg, i=3, batch_norm=False):
     vgg_base = models.vgg16(pretrained=True).features
     for m, _m in zip(layers[:-5], vgg_base):
         if isinstance(m, nn.Conv2d):
-            m.weight.copy_(_m.weight)
-            m.bias.copy(_m.bias)
+            m.weight.data.copy_(_m.weight.data)
+            m.bias.data.copy_(_m.bias.data)
+
+        elif isinstance(m, nn.BatchNorm2d):
+            m.weight.data.copy_(_m.weight.data)
+            m.bias.data.copy_(_m.bias.data)
+
+            # m.weight.requires_grad = False
+            # m.bias.requires_grad = False
 
     return layers
 
@@ -111,6 +118,7 @@ class SSD(nn.Module):
 
         _x = self.l2norm(x)
         features += [_x]
+        # features += [x]
         
         for k in range(num_conv43_relu + 1, len(self.base)):
             x = self.base[k](x)
@@ -135,8 +143,8 @@ class SSD(nn.Module):
             
             conf = F.softmax(conf, dim=-1)
             
-            loc[:, :, :2] = loc[:, :, :2] * priors[:, 2:] + priors[:, :2]
-            loc[:, :, 2:] = torch.exp(loc[:, :, 2:]) * priors[:, 2:] # + priors[:, 2:]
+            loc[:, :, :2] = (loc[:, :, :2] * cfg['variances'][0] * priors[:, 2:] + priors[:, :2])
+            loc[:, :, 2:] = torch.exp(loc[:, :, 2:] * cfg['variances'][1]) * priors[:, 2:] # + priors[:, 2:]
 
             return conf, loc
 
@@ -145,6 +153,7 @@ class SSD(nn.Module):
             loss = self.criteria(loc, conf, priors, target)
 
             return loss
+
 
 class L2Norm(nn.Module):
     def __init__(self, n_channels, scale, format='spatial'):

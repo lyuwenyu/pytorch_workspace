@@ -4,6 +4,7 @@ import math
 import time
 import torch
 from PIL import Image, ImageDraw
+from itertools import product
 
 import os, sys
 sys.path.insert(0, '/home/wenyu/workspace/pytorch_workspace/')
@@ -20,7 +21,8 @@ class PriorBox(object):
         self.aspect_rarios = cfg['apsect_ratios']
         self.min_sizes = cfg['min_sizes']
         self.max_sizes = cfg['max_sizes']
-        
+        self.variances = cfg['variances']
+    """
     def __call__(self, VISUALIZATION=True):
         '''
         generate prior bbox, [cx, cy, w, h] and normalized
@@ -71,6 +73,31 @@ class PriorBox(object):
 
         print('anchors: ', anchors.shape)
         return anchors
+    """
+    def __call__(self, VISUALIZATION=True):
+        
+        mean = []
+        for k, f in enumerate(self.grids):
+            for i, j in product(range(f), repeat=2):
+
+                f_k = self.img_dim / self.strides[k]
+                cx = (j + 0.5) / f_k
+                cy = (i + 0.5) / f_k
+
+                s_k = self.min_sizes[k] / self.img_dim
+                mean += [cx, cy, s_k, s_k]
+
+                s_k_prime = math.sqrt(s_k * (self.max_sizes[k] / self.img_dim))
+                mean += [cx, cy, s_k_prime, s_k_prime]
+
+                for ar in self.aspect_rarios[k]:
+                    mean += [cx, cy, s_k * math.sqrt(ar), s_k / math.sqrt(ar)]
+                    mean += [cx, cy, s_k / math.sqrt(ar), s_k * math.sqrt(ar)]
+
+        output = torch.Tensor(mean).view(-1, 4)
+        output.clamp_(max=1, min=0)
+
+        return output
 
 
 def bbox_overlap(box_a, box_b, x1y1x2y2=True):
@@ -89,11 +116,9 @@ def bbox_overlap(box_a, box_b, x1y1x2y2=True):
                             box_b[:, 2:].unsqueeze(0).expand(A, B, 2))
 
     inter = torch.clamp(max_points - min_points, min=0)
-    inter = inter.prod(dim=-1)
+    # inter = inter.prod(dim=-1)
 
-    # print(inter)
-
-    return inter
+    return inter[:, :, 0] * inter[:, :, 1]
 
 
 def jaccard(boxa, boxb):
@@ -137,15 +162,26 @@ def match(gts, labels, priors, threshold=0.5):
     _, best_prior_idx = overlaps.max(1) # best prior for each gt
     best_gt_overlap, best_gt_idx = overlaps.max(0) # best gt for each prior
 
-    best_gt_overlap.index_fill_(0, best_prior_idx, 1) # for threshold 
+    best_gt_overlap.index_fill_(0, best_prior_idx, 2) # for threshold 
+    
+    # print('best_prior_idx.shape: ', best_prior_idx)
+    # print('best_gt_idx.shape: ', best_gt_idx.shape)
+    # print('best_gt_overlap.shape: ', best_gt_overlap.shape)
+
+    if False:
+        img = Image.new('RGB', size=(300, 300))
+        ops_show_bbox.show_bbox(img, bbox=gts, xyxy=True, normalized=True, show=False, color='red')
+        ops_show_bbox.show_bbox(img, bbox=priors[best_gt_overlap > threshold], xyxy=False, normalized=True, show=False, color='yellow')
+        ops_show_bbox.show_bbox(img, bbox=priors[best_prior_idx], xyxy=False, normalized=True, show=True, color='blue')
+        return 0
+
     for j in range(best_prior_idx.size(0)): # 
         best_gt_idx[best_prior_idx[j]] = j
 
     matches = gts[best_gt_idx]
-    # print(matches.shape)
 
     # print(len(best_gt_overlap<=0.5))
-    # print(torch.sum(best_gt_overlap<=0.5)) #HERE, sum difference to torch.sum
+    # print(torch.sum(best_gt_overlap<=0.5)) # HERE, sum difference to torch.sum
     # print(sum(best_gt_overlap<=0.5))
 
     # labels target
@@ -155,11 +191,11 @@ def match(gts, labels, priors, threshold=0.5):
 
     # center offet target
     t_cxcy = (matches[:, :2] + matches[:, 2:]) / 2 - priors[:, :2]
-    t_cxcy /= priors[:, 2:] 
+    t_cxcy /= (priors[:, 2:] * cfg['variances'][0])
 
     # w h target
     t_wh = (matches[:, 2:] - matches[:, :2]) / priors[:, 2:] # HERE. must larger than 0
-    t_wh = torch.log(t_wh + 1e-10)
+    t_wh = torch.log(t_wh + 1e-10) / cfg['variances'][1]
 
     # cx cy w h target
     locs = torch.cat((t_cxcy, t_wh), dim=1)

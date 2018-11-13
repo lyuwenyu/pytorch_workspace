@@ -15,6 +15,10 @@ import os, sys
 from model.vgg_ssd300 import build_ssd
 from data.dataset import Dataset
 
+import os, sys
+sys.path.insert(0, '/home/wenyu/workspace/pytorch_workspace/')
+from yolov3.utils import ops_show_bbox
+
 import argparse
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -25,8 +29,8 @@ parser.add_argument('--resume_path', type=str, default='') # ./output/state-ckpt
 parser.add_argument('--loss_step', type=int, default=10)
 parser.add_argument('--save_step', type=int, default=5)
 parser.add_argument('--img_dims', type=list, default=[300, ]) # 608, 320
-parser.add_argument('--batch_sizes', type=list, default=[32, ]) # 16, 48
-parser.add_argument('--num_workers', type=list, default=5)
+parser.add_argument('--batch_sizes', type=list, default=[16, ]) # 16, 48
+parser.add_argument('--num_workers', type=list, default=3)
 parser.add_argument('--epoches', type=int, default=101)
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--momentum', type=float, default=0.9)
@@ -51,6 +55,9 @@ def train(model, dataloader, optimizer, scheduler, epoch=0):
 
         images = images.to(torch.device(device))
         targets = targets.to(torch.device(device))
+
+        if False:
+            ops_show_bbox.show_tensor_bbox(images[0], targets[0], xyxy=True, normalized=True)
 
         tic = time.time()
         
