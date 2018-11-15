@@ -146,6 +146,9 @@ class SSD(nn.Module):
             loc[:, :, :2] = (loc[:, :, :2] * cfg['variances'][0] * priors[:, 2:] + priors[:, :2])
             loc[:, :, 2:] = torch.exp(loc[:, :, 2:] * cfg['variances'][1]) * priors[:, 2:] # + priors[:, 2:]
 
+            loc[:, :, :2] -= loc[:, :, 2:] / 2
+            loc[:, :, 2:] += loc[:, :, :2]
+
             return conf, loc
 
         else:

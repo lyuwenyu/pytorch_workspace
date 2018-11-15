@@ -190,12 +190,12 @@ def match(gts, labels, priors, threshold=0.5):
     # print((clss==0).sum())
 
     # center offet target
-    t_cxcy = (matches[:, :2] + matches[:, 2:]) / 2 - priors[:, :2]
-    t_cxcy /= (priors[:, 2:] * cfg['variances'][0])
+    t_cxcy = ((matches[:, :2] + matches[:, 2:]) / 2 - priors[:, :2]) * priors[:, 2:]
+    t_cxcy /= cfg['variances'][0]
 
     # w h target
-    t_wh = (matches[:, 2:] - matches[:, :2]) / priors[:, 2:] # HERE. must larger than 0
-    t_wh = torch.log(t_wh + 1e-10) / cfg['variances'][1]
+    t_wh = torch.log((matches[:, 2:] - matches[:, :2]) / priors[:, 2:] + 1e-10) # HERE. must larger than 0
+    t_wh /= cfg['variances'][1]
 
     # cx cy w h target
     locs = torch.cat((t_cxcy, t_wh), dim=1)

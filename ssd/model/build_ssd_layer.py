@@ -49,31 +49,23 @@ class SSDLayerLoss(nn.Module):
         pos = conf_t > 0
         num_pos = pos.sum(dim=-1, keepdim=True)
         
-        # print('loc_p.shape', loc_p.shape)
-        # print('pos.shape', pos.shape)
-        # print('num_pos.shape', num_pos.shape)
-        # print('loc_p[pos].shape', loc_p[pos].shape)
-        # pos_idx = pos.unsqueeze(2).expand_as(loc_p)
-        # loc_p_mask = loc_p[pos_idx].view(-1, 4)
-        # loc_t_mask = loc_t[pos_idx].view(-1, 4)
-        # loss_loc = F.smooth_l1_loss(loc_p_mask, loc_t_mask, size_average=False) # order should not change
         loss_loc = F.smooth_l1_loss(loc_p[pos], loc_t[pos], size_average=False) # order should not change
-        
-        # print('loss_loc: ', loss_loc.item())
 
         # hard negative mining
         if True:
 
-            loss_c = torch.logsumexp(conf_p, dim=-1)
-            loss_c[pos] = 0
+            _loss_c = torch.logsumexp(conf_p.data, dim=-1)
+            _loss_c -= conf_p.data.gather(dim=-1, index=conf_t.data.view(n, num_priors, 1).expand_as(conf_p.data).long())[:, :, 0]
 
-            _, loss_idx = loss_c.sort(dim=-1, descending=True)
+            _loss_c[pos] = 0
+
+            _, loss_idx = _loss_c.sort(dim=-1, descending=True)
             _, idx_rank = loss_idx.sort(dim=-1)
             num_neg = torch.clamp(negpos_ratio * num_pos, max=num_priors - 1)
             neg = idx_rank < num_neg
             # _, neg = loss_c.topk(k=num_neg, dim=-1)
 
-            loss_c = F.cross_entropy(conf_p[neg + pos], conf_t[pos + neg].long(), size_average=False)
+            loss_c = F.cross_entropy(conf_p[(neg + pos) > 0], conf_t[(pos + neg) > 0].long(), size_average=False)
             
         ## focal loss
         # else:
