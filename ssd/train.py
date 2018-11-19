@@ -34,7 +34,7 @@ parser.add_argument('--num_workers', type=list, default=3)
 parser.add_argument('--epoches', type=int, default=101)
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--momentum', type=float, default=0.9)
-parser.add_argument('--milestones', type=list, default=[40, 70, 90])
+parser.add_argument('--milestones', type=list, default=[50, 70, 90])
 parser.add_argument('--gamma', type=float, default=0.1)
 args = parser.parse_args()
 
@@ -43,7 +43,7 @@ class Sovler(object):
     pass
 
 
-def train(model, dataloader, optimizer, scheduler, epoch=0):
+def train(model, dataloader, optimizer, scheduler, e=0):
     '''train'''
     model.train()
     scheduler.step()
@@ -100,7 +100,7 @@ def train(model, dataloader, optimizer, scheduler, epoch=0):
         if not os.path.exists('./output'):
             os.mkdir('./output')
 
-        torch.save(state, './output/state-ckpt-epoch-{:0>5}'.format(epoch))
+        torch.save(state, './output/state-ckpt-epoch-{:0>5}'.format(e))
 
     print(''.join(['-'] * len(lin)))
 
@@ -139,12 +139,10 @@ if __name__ == '__main__':
     while e < args.epoches:
         if e < 10: 
             train(model, dataloaders[0], optimizer, scheduler, e)
-            pass
             e += 1
         else:
             random.shuffle(dataloaders)
             for i, dtloader in enumerate(dataloaders):
                 train(model, dtloader, optimizer, scheduler, e + i)
-                pass
             e += len(dataloaders)
 
