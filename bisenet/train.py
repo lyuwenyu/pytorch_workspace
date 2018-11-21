@@ -15,7 +15,7 @@ from model.network import BiSeNet
 from data.dataset import Dataset
 
 
-device = torch.device('cuda:0')
+device = torch.device('cuda:1')
 
 import argparse
 # device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -26,7 +26,7 @@ parser.add_argument('--resume_path', type=str, default='')
 parser.add_argument('--loss_step', type=int, default=10)
 parser.add_argument('--save_step', type=int, default=50)
 parser.add_argument('--img_dims', type=list, default=[416, ])
-parser.add_argument('--batch_sizes', type=list, default=[32, ])
+parser.add_argument('--batch_sizes', type=list, default=[2, ])
 parser.add_argument('--num_workers', type=list, default=8)
 parser.add_argument('--epoches', type=int, default=201)
 parser.add_argument('--lr', type=float, default=0.0001)
@@ -35,6 +35,8 @@ parser.add_argument('--milestones', type=list, default=[80, 150, 180])
 parser.add_argument('--gamma', type=float, default=0.1)
 args = parser.parse_args()
 
+# pylint: disable=E1101
+# pylint: disable=E1102
 
 def get_weight(msks):
     '''weighted for loss'''
@@ -50,7 +52,7 @@ def get_weight(msks):
     return weight
 
 
-def train(model, dataloader, optimizer, scheduler, epoch=0):
+def train(model, dataloader, optimizer, scheduler, epoch):
     '''train'''
     model.train()
     scheduler.step()
@@ -98,8 +100,8 @@ def train(model, dataloader, optimizer, scheduler, epoch=0):
 if __name__ == '__main__':
 
     model = BiSeNet(num_classes=args.num_classes)
-    dataset = Dataset('./data')
-    dataloader = data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+    dataset = Dataset('/home/wenyu/workspace/dataset/fisheye/segmentation_data/val_json', img_size=args.img_dims[0])
+    dataloader = data.DataLoader(dataset, batch_size=args.batch_sizes[0], shuffle=True, num_workers=args.num_workers)
 
     model.to(device=device)
 
@@ -109,7 +111,6 @@ if __name__ == '__main__':
     if args.resume_path:
         ops_weight_init.resume(model, optimizer, scheduler, args.resume_path)
 
-    for e in range(scheduler.last_epoch, args.epoches):
-        for _, (imgs, msks) in enumerate(dataloader):
+    for e in range(scheduler.last_epoch + 1, args.epoches):
 
-            train(model, dataloader, optimizer, scheduler)
+        train(model, dataloader, optimizer, scheduler, epoch=e)

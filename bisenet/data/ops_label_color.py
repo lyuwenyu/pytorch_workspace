@@ -5,12 +5,11 @@ import numpy as np
 # name, r, g, b
 # backgroud 0 0 0
 label_color = OrderedDict([
-    ['c1', (0, 0, 0)],
-    ['c2', (128, 0, 0)],
-    ['c3', (0, 128, 0)],
-    ['c4', (0, 0, 128)],pillar
-    ['c5', (128, 128, 0)],
-
+    ['background', (0, 0, 0)],
+    ['parking_spot', (128, 0, 0)],
+    ['car', (0, 128, 0)],
+    ['line', (0, 0, 128)],
+    ['pillar', (128, 128, 0)],
 ])
 
 label_map = dict(zip(label_color.keys(), range(len(label_color.keys()))))

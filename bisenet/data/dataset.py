@@ -10,34 +10,34 @@ import glob
 sys.path.insert(0, '/home/wenyu/workspace/pytorch_workspace/')
 # sys.path.insert(0, '/home/wenyu/workspace/pytorch_workspace/')
 import yolov3.utils.ops_parse_json as ops_parse_json
-import augmentor.utils.pipeline as pipeline
+import augmentor.utils.ops_pipeline as pipeline
 
 from data.ops_label_color import label_color, label_color_map
 
-blob = ops_parse_json.load_json('./data/00001.json')
-img = Image.open('./data/00001.jpg')
-# print(blob)]
-print(blob)
+# blob = ops_parse_json.load_json('./data/00001.json')
+# img = Image.open('./data/00001.jpg')
+# # print(blob)]
+# print(blob)
 
-anno = Image.new('RGB', img.size, color=label_color['background'])
-anno_draw = ImageDraw.Draw(anno)
+# anno = Image.new('RGB', img.size, color=label_color['background'])
+# anno_draw = ImageDraw.Draw(anno)
 
-for lab, pts in zip(blob['labels'], blob['points']):
-    anno_draw.polygon(pts, fill=label_color[lab])
+# for lab, pts in zip(blob['labels'], blob['points']):
+#     anno_draw.polygon(pts, fill=label_color[lab])
 
-img = img.resize([512, 512])
-anno = anno.resize([512, 512])
+# img = img.resize([512, 512])
+# anno = anno.resize([512, 512])
 
-ann_arr = np.array(anno)
-ann_msk = np.zeros(ann_arr.shape[:-1], dtype=np.uint8)
+# ann_arr = np.array(anno)
+# ann_msk = np.zeros(ann_arr.shape[:-1], dtype=np.uint8)
 
-for k, v in label_color_map.items():
-    msk = np.all(ann_arr == np.array(k).reshape(1, 1, 3), axis=2)
-    ann_msk[msk] = v * 100
+# for k, v in label_color_map.items():
+#     msk = np.all(ann_arr == np.array(k).reshape(1, 1, 3), axis=2)
+#     ann_msk[msk] = v * 100
 
-print(ann_msk.shape)
+# print(ann_msk.shape)
 
-mask = Image.fromarray(ann_msk)
+# mask = Image.fromarray(ann_msk)
 # mask.show()
 # anno.show()
 
@@ -53,7 +53,9 @@ class Dataset(data.Dataset):
         self.simu_pipe = pipeline.ImagesPipeline()
         self.simu_pipe.flip_left_right(probability=0.5)
         # self.simu_pipe.crop_by_size(probability=0.8, width=416, height=416)
-        self.simu_pipe.crop_random(probability=0.7, percentage_area=0.7)
+        # self.simu_pipe.crop_random(probability=0.7, percentage_area=0.7)
+        self.simu_pipe.crop_centre(probability=1.0, percentage_area=0.7)
+        self.simu_pipe.shear(probability=1.0, max_shear_left=10, max_shear_right=10)
         # self.simu_pipe.resize(probability=1.0, width=img_size, height=img_size) # HERE do not do it in here
 
         self.img_pipe = pipeline.ImagesPipeline()
@@ -67,13 +69,14 @@ class Dataset(data.Dataset):
     def __getitem__(self, i):
         
         blob = ops_parse_json.load_json(self.jsons[i])
-        img = Image.open(os.path.join(self.data_dir, blob['imagePath']))
+        img = blob['imageData'] # Image.open(os.path.join(self.data_dir, blob['imagePath']))
 
         # mask label
         anno = Image.new('RGB', img.size, color=label_color['background'])
         anno_draw = ImageDraw.Draw(anno)
-        for lab, pts in zip(blob['labels'], blob['points']):
+        for lab, pts in zip(blob['labels'], blob['points']):        
             anno_draw.polygon(pts, fill=label_color[lab])
+            
 
         # some augmentation for image anno
         img, anno = self.simu_pipe.transform([img, anno])
@@ -89,10 +92,10 @@ class Dataset(data.Dataset):
             msk = np.all(ann_arr == np.array(k).reshape(1, 1, 3), axis=2)
             ann_msk[msk] = v
 
-        if True:
+        if False:
             img.show()
             anno.show()
-            # Image.fromarray(ann_msk * 50).show()
+            Image.fromarray(ann_msk * 50).show()
             c += 1
 
         return self.totensor(img), ann_msk
