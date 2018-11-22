@@ -72,7 +72,9 @@ class Dataset(data.Dataset):
             self.label_map = dict(zip(lines, range(len(lines))))
         # print(self.label_map)
 
-        anns += glob.glob(os.path.join(annos_dir, 'dataset_zc', '*','anno', '*.xml'))
+        annos_dir = '/'
+        anns = glob.glob(os.path.join(annos_dir, '', '*', 'anno', '*.xml'))
+        anns += glob.glob(os.path.join(annos_dir, '', '*','anno', '*.xml'))
         imgs = [ann.replace('xml', 'jpg').replace('anno', 'img') for ann in anns]
 
         assert len(anns) == len(imgs), ''
@@ -182,8 +184,9 @@ class Dataset(data.Dataset):
 
 class DatasetQuad(data.Dataset):
 
-    def __init__(self, img_dim=416):
+    def __init__(self, root='', img_dim=416, ):
 
+        self.root = ''
         self.annos = glob.glob(os.path.join(self.root, '*.json'))
         self.max_n = 20
         self.img_dim = img_dim
