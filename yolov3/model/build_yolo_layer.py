@@ -47,11 +47,16 @@ class YOLOLayer(nn.Module):
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
         '''forward '''
         bs = p.shape[0]
-        nG = p.shape[2]
-        grid_x = self.grid_w[:nG, :nG].to(dtype=p.dtype, device=p.device)
-        grid_y = self.grid_h[:nG, :nG].to(dtype=p.dtype, device=p.device)
+        # nG = p.shape[2]
+        nG = (p.shape[2], p.shape[3])
+        
+        # grid_x = self.grid_w[:nG, :nG].to(dtype=p.dtype, device=p.device)
+        # grid_y = self.grid_h[:nG, :nG].to(dtype=p.dtype, device=p.device)
+        grid_x = self.grid_w[:nG[0], :nG[1]].to(dtype=p.dtype, device=p.device)
+        grid_y = self.grid_h[:nG[0], :nG[1]].to(dtype=p.dtype, device=p.device)
 
-        p = p.view(bs, self.nA, self.bbox_attrs, nG, nG).permute(0, 1, 3, 4, 2).contiguous()
+        # p = p.view(bs, self.nA, self.bbox_attrs, nG, nG).permute(0, 1, 3, 4, 2).contiguous()
+        p = p.view(bs, self.nA, self.bbox_attrs, nG[0], nG[1]).permute(0, 1, 3, 4, 2).contiguous()
 
         x = torch.sigmoid(p[..., 0])
         y = torch.sigmoid(p[..., 1])
@@ -61,7 +66,8 @@ class YOLOLayer(nn.Module):
         width = torch.exp(w) * self.anchor_w.view(1, -1, 1, 1).to(dtype=w.dtype, device=w.device) #.data
         height = torch.exp(h) * self.anchor_h.view(1, -1, 1, 1).to(dtype=h.dtype, device=h.device)
 
-        pred_boxes = torch.zeros((bs, self.nA, nG, nG, 4)).to(dtype=p.dtype, device=p.device)
+        # pred_boxes = torch.zeros((bs, self.nA, nG, nG, 4)).to(dtype=p.dtype, device=p.device)
+        pred_boxes = torch.zeros((bs, self.nA, nG[0], nG[1], 4)).to(dtype=p.dtype, device=p.device)
         
         pred_conf = p[..., 4] 
         pred_cls =  p[..., 5:] 

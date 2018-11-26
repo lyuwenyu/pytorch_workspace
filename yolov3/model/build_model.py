@@ -30,11 +30,14 @@ def create_model(model_defs, cls_num, img_dim=None, quad=False, yolo=False, ssd=
     hyperparameter = model_defs.pop(0)
     outfilters = [int(hyperparameter['channels'])]
     module_list = nn.ModuleList()
+    
+    # print(model_defs)
 
     for i, defs in enumerate(model_defs):
         module = nn.Sequential()
+        # print(defs)
 
-        if defs['type'] == 'convolutional':
+        if 'convolutional' in defs['type']:
 
             bn = int(defs.get('batch_normalize', 0))
             filters = int(defs['filters'])
@@ -61,12 +64,12 @@ def create_model(model_defs, cls_num, img_dim=None, quad=False, yolo=False, ssd=
                 upsample = nn.Upsample(scale_factor=int(defs['stride']), mode='nearest')
                 module.add_module(f'upsample_{i}', upsample)
         
-        elif defs['type'] == 'route':
+        elif 'route' in defs['type']:
             layers = [int(l) for l in defs['layers'].split(',')]
             filters = sum(outfilters[l] for l in layers)
             module.add_module(f'route_{i}', EmptyLayer())
 
-        elif defs['type'] == 'shortcut':
+        elif 'shortcut' in defs['type']:
             filters = outfilters[int(defs['from'])]
             module.add_module(f'shortcut_{i}', EmptyLayer())
 
@@ -86,8 +89,8 @@ def create_model(model_defs, cls_num, img_dim=None, quad=False, yolo=False, ssd=
                 attr_num = 4 + 8 + 1 + num_classes
                 # print(attr_num)
 
-            elif ssd:
-                yolo_layer = SSDLayer(num_classes)
+            # elif ssd:
+            #     yolo_layer = SSDLayer(num_classes)
 
             else:
                 yolo_layer = YOLOLayer(anchors, num_classes, anchor_index, img_dim)
@@ -140,6 +143,7 @@ class DarkNet(nn.Module):
         # losses = dict.fromkeys(self.loss_names, 0)
         
         # output4paralel = np.zeros((1, len(self.loss_names)))
+        tic = time.time()
 
         for _, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
 
@@ -172,15 +176,17 @@ class DarkNet(nn.Module):
                     #     output4paralel[0, ii] += [xi.item()]
                     #     losses[ni] += xi.item()
                     losses += [[xi.item() for xi in x]]
-
+            
             layer_outputs += [x]
+            # print(time.time() - tic)
 
+        # print(time.time() - tic)
         if target is None:
             return torch.cat(outputs, dim=1)
 
         else:
-            # return sum(outputs)
-            return sum(outputs), losses # 
+            return sum(outputs)
+            # return sum(outputs), losses # quad
 
 
     def set_target(self, target):
@@ -250,19 +256,23 @@ class DarkNet(nn.Module):
 
 if __name__ == '__main__':
     path = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(path, '..', '_model', 'yolov3.cfg')
+    path = os.path.join(path, '..', '_model', 'yolov3_v1.cfg')
     
-    data = torch.rand(2, 3, 416, 416).to(device=torch.device('cuda'))
-    model = DarkNet(path, cls_num=3, quad=True)
+    device = torch.device('cpu')
+    data = torch.rand(1, 3, 256, 320).to(device=device)
+    model = DarkNet(path, cls_num=10, quad=False).to(device=device)
     print(model)
     # model.load_state_dict(torch.load(os.path.join(filedir, 'yolov3.torch')))
     # model.eval()
     # model = model.cuda()
 
-    model.load_weights(weights_path=os.path.join('/home/wenyu/workspace/pytorch_workspace/yolov3/_model', 'yolov3.weights'))
+    # model.load_weights(weights_path=os.path.join('/home/wenyu/workspace/pytorch_workspace/yolov3/_model', 'yolov3.weights'))
     # torch.save(model.state_dict(), os.path.join(filedir, 'yolov3.torch'))
 
-    # tic = time.time()
-    # print(model(data).shape)
-    # print(time.time() - tic)
+    times = []
+    for _ in range(10):
+        tic = time.time()
+        model(data)
+        times += [time.time() - tic]
 
+    print(sum(times) / len(times))
