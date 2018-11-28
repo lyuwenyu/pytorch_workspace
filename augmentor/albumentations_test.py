@@ -9,7 +9,7 @@ import albumentations
 from albumentations import Compose, OneOf
 
 sys.path.insert(0, '../yolov3')
-from utils import ops_show_bbox
+from yolov3.utils import ops_show_bbox
 
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
@@ -17,7 +17,8 @@ cv2.ocl.setUseOpenCL(False)
 img = Image.open('dog-cycle-car.png')
 
 
-def get_transforms(min_visibility=0.3, bbox=None):
+def get_transforms(min_visibility=0.3, min_area=100, bbox=None):
+    
     transforms = [
         albumentations.RandomCrop(height=400, width=400, p=1.),
         # OneOf([
@@ -29,7 +30,11 @@ def get_transforms(min_visibility=0.3, bbox=None):
     ]
     # random.shuffle(transforms)
 
-    bbox_params = {'format': 'pascal_voc', 'min_visibility': min_visibility, 'label_fields': ['classes']} if bbox else {}
+    bbox_params = {'format': 'pascal_voc',
+                    'min_visibility': min_visibility,
+                    'label_fields': ['classes'],
+                    'min_area': min_area
+            } if bbox else {}
 
     return Compose(transforms, bbox_params=bbox_params, p=1)
 
@@ -47,3 +52,17 @@ result = transforms(**anns)
 image = Image.fromarray(result['image'])
 bboxes = np.array(result['bboxes'])
 ops_show_bbox.show_bbox(image, bboxes)
+
+
+
+# segmentation
+
+# img nparray / cv2
+# aug = albumentations.RandomCrop(height=416, width=416, p=1.0)
+# auged = aug(image=img, mask=mask)
+# mask = auged['mask']
+# img = auged['image']
+# result = utils.draw_label(mask, img, labels, colormap=None)
+# Image.fromarray(result).show()
+# masks = [(mask == i).astype(np.uint8) for i in range(len(labels))]
+# Image.fromarray(masks[0] * 100).show()

@@ -140,7 +140,7 @@ def perspective_operation(image, bboxes=None, magnitude=2.0, skew_type='RANDOM')
     #     matrix_reverse.append([0, 0, 0, p1[0], p1[1], 1, -p2[1] * p1[0], -p2[1] * p1[1]])
 
     M = cv2.getPerspectiveTransform(np.array(original_plane).astype(np.float32), np.array(new_plane).astype(np.float32))
-    # M_reverse = np.linalg.pinv(M)
+    M_reverse = np.linalg.pinv(M)
 
     def do(image, bbox=None):
         # return image.transform(image.size,
@@ -158,23 +158,18 @@ def perspective_operation(image, bboxes=None, magnitude=2.0, skew_type='RANDOM')
         points[:, 0] = points[:, 0] / (points[:, -1] + 1e-10)
         points[:, 1] = points[:, 1] / (points[:, -1] + 1e-10)
         points = points[:, :2]
-        print(points.shape)
-        # points = np.hstack([points[:int(len(points)/2), :2], points[int(len(points)/2):, :2]])
-        # points[:, 0] = np.minimum(np.maximum(0, points[:, 0]), _img.size[0] - 1)
-        # points[:, 1] = np.minimum(np.maximum(0, points[:, 1]), _img.size[1] - 1)
-        # points[:, 2] = np.minimum(np.maximum(0, points[:, 2]), _img.size[0] - 1)
-        # points[:, 3] = np.minimum(np.maximum(0, points[:, 3]), _img.size[1] - 1)
-        print(points[list(range(0, len(points), 2)), 0])
+        # print(points.shape)
 
         points[:, 0] = np.minimum(np.maximum(points[:, 0], 0), _img.size[0] - 1)
         points[:, 1] = np.minimum(np.maximum(points[:, 1], 0), _img.size[1] - 1)
+
         points = points[:, :2].reshape(bbox.shape)
         
 
         for i, bbx in enumerate(points):
             polygon = geometry.Polygon([(x,y) for x, y in zip(bbx[::2], bbx[1::2])])
             if polygon.area < 100:
-                print(i)
+                # print(i)
                 pass
         
         # areas = (points[:, 3] - points[:, 1]) * (points[:, 2] - points[:, 0])
@@ -188,8 +183,9 @@ def perspective_operation(image, bboxes=None, magnitude=2.0, skew_type='RANDOM')
     # augmented_images = []
     # for image in images:
     #     augmented_images.append(do(image))
-    
-    return do(image, bbox=bboxes)
+    img, points = do(image, bbox=bboxes)
+
+    return img, points, M, M_reverse
 
 
 
@@ -231,7 +227,7 @@ if __name__ == '__main__':
     img.show()
 
     # bbox = bbox.reshape(-1, 2)
-    img, points = perspective_operation(img, bbox)
+    img, points, _, _ = perspective_operation(img, bbox, magnitude=0.8)
     draw = ImageDraw.Draw(img)
 
     points = np.array(points).reshape(-1, 2)
