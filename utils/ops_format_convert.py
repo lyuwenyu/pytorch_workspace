@@ -8,13 +8,15 @@ import numpy as np
 from xml.etree import cElementTree as ET
 from PIL import Image
 import os, sys
+import copy
 # import xmltodict
 
 __all__ = [
+    'encode_labelme',
     'decode_labelme',
     'decode_pascalvoc',
     'encode_pascalvoc',
-    'labelme2pascalvoc'
+    'labelme2pascalvoc',
 ]
 
 def decode_labelme(filename=''):
@@ -26,7 +28,7 @@ def decode_labelme(filename=''):
 
     with open(filename, 'rb') as f:
         raw_data = json.load(f)
-        image = Image.fromarray(labelme.utils.img_b64_to_arr(raw_data['imageData']))
+        # image = Image.fromarray(labelme.utils.img_b64_to_arr(raw_data['imageData']))
         imagePath = raw_data['imagePath']
         labels = [shape['label'] for shape in raw_data['shapes']]
         points = [shape['points'] for shape in raw_data['shapes']]
@@ -41,7 +43,7 @@ def decode_labelme(filename=''):
         bboxes += [[_xmin, _ymin, _xmax, _ymax], ]
 
     blob = {
-        'image': image,
+        # 'image': image,
         'imagePath': imagePath,
         'filename': imagePath,
         'labels': labels,
@@ -49,9 +51,9 @@ def decode_labelme(filename=''):
         'bboxes': bboxes
     }
 
-    blob['width'] = blob['image'].size[0]
-    blob['height'] = blob['image'].size[1]
-    blob['depth'] = len(blob['image'].mode)
+    # blob['width'] = blob['image'].size[0]
+    # blob['height'] = blob['image'].size[1]
+    # blob['depth'] = len(blob['image'].mode)
     blob['classes'] = blob['labels']
 
     return blob
@@ -180,10 +182,32 @@ def labelme2pascalvoc(filename='', save_dir='.', classes_map=None, save_img=True
     encode_pascalvoc(blob, xmlname, classes_map)
 
 
+def encode_labelme(blob, path):
+    '''
+    '''
+    filename = os.path.join(os.path.dirname(os.path.abspath(__file__)),'001.json')
+    with open(filename, 'r') as f:
+        raw_data = json.load(f)        
+
+    shapes = []
+    for i in range(len(blob['bboxes'])):
+        shapes_template = copy.deepcopy(raw_data['shapes'][0])
+        shapes_template['points'] = [[232.7, 301.2], [276, 301], [276.3, 334.5], [232, 334]]
+        shapes_template['label'] = blob['labels'][i]
+        shapes += [shapes_template]
+
+    raw_data['shapes'] = shapes
+    raw_data['imageData'] = None
+    raw_data['imagePath'] = blob['path']
+
+    with open(path, 'w') as f:
+        json.dump(raw_data, f)
+
+
 
 if __name__ == '__main__':
 
 
-    filename = '../augmentor/utils/00001.json'
-
-    labelme2pascalvoc(filename)
+    filename = os.path.join(os.path.dirname(os.path.abspath(__file__)),'001.json')
+    with open(filename, 'r') as f:
+        raw_data = json.load(f)        
