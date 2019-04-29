@@ -88,14 +88,13 @@ def create_model(model_defs, cls_num, img_dim=None, quad=False, yolo=False, ssd=
                 yolo_layer = textbox_layer(anchors, num_classes, anchor_index, img_dim)
                 attr_num = 4 + 8 + 1 + num_classes
                 # print(attr_num)
-
             # elif ssd:
             #     yolo_layer = SSDLayer(num_classes)
 
             else:
                 yolo_layer = YOLOLayer(anchors, num_classes, anchor_index, img_dim)
                 attr_num = 4 + 1 + num_classes
-
+            
             module.add_module(f'yolo_{i}', yolo_layer)
 
             # 
@@ -106,7 +105,7 @@ def create_model(model_defs, cls_num, img_dim=None, quad=False, yolo=False, ssd=
                 in_channels = m.in_channels
             
             _m = nn.Conv2d(in_channels, attr_num * len(anchors), kernel_size, stride)
-            print(_m)
+            # print(_m)
             del module_list[-1] # __delitem__
             module_list += [nn.Sequential(OrderedDict([(name, _m)]))] # __iadd__ append
             # module_list[len(module_list) - 1] = nn.Sequential(OrderedDict([(name, _m)]))
@@ -145,7 +144,7 @@ class DarkNet(nn.Module):
         # output4paralel = np.zeros((1, len(self.loss_names)))
         tic = time.time()
 
-        for _, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+        for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
 
             if module_def['type'] == 'convolutional':
                 x = module(x)
@@ -159,7 +158,7 @@ class DarkNet(nn.Module):
                 x = layer_outputs[-1] + layer_outputs[layer_i]
 
             elif module_def['type'] == 'upsample':
-                if VERSION == '0.4.1':
+                if VERSION >= '0.4.1':
                     x = F.interpolate(layer_outputs[-1], scale_factor=int(module_def['stride']), mode='nearest',)
                 else:
                     x = module(x)
@@ -167,26 +166,21 @@ class DarkNet(nn.Module):
             elif module_def['type'] == 'yolo':
                 if target is None: # test phase)
                     x = module(x)
-                    outputs += [x]
-
+                    if i != 82:
+                        outputs += [x]
                 else: # training phase
                     x = module[0](x, target=self.set_target(target))  # module is sequential object, not yolo
-                    outputs += [x[0]]
-                    # for ii, (ni, xi) in enumerate(zip(self.loss_names, x)):
-                    #     output4paralel[0, ii] += [xi.item()]
-                    #     losses[ni] += xi.item()
-                    losses += [[xi.item() for xi in x]]
+                    if i != 82:
+                        outputs += [x[0]]
+                        losses += [[xi.item() for xi in x]]
             
             layer_outputs += [x]
-            # print(time.time() - tic)
 
-        # print(time.time() - tic)
         if target is None:
             return torch.cat(outputs, dim=1)
-
         else:
-            return sum(outputs)
-            # return sum(outputs), losses # quad
+            # return sum(outputs)
+            return sum(outputs), losses # quad
 
 
     def set_target(self, target):

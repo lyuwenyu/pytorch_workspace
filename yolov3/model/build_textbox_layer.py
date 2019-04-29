@@ -41,6 +41,7 @@ class textbox_layer(nn.Module):
         self.bceLoss = nn.BCEWithLogitsLoss()
         self.crossentropy = nn.CrossEntropyLoss()
         self.smoothl1loss = nn.SmoothL1Loss()
+        self.l1loss = nn.L1Loss()
 
     def forward(self, p, target=None, requestPrecision=False, epoch=None):
         '''forward '''
@@ -68,7 +69,6 @@ class textbox_layer(nn.Module):
         p3y = p[..., 9]
         p4x = p[..., 10]
         p4y = p[..., 11]
-        # p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y = p[..., [4, 5, 6, 7, 8, 9, 10, 11]]
 
         width = torch.exp(w) * anchor_w #.data
         height = torch.exp(h) * anchor_h
@@ -90,26 +90,54 @@ class textbox_layer(nn.Module):
             # pred_boxes[..., 2] = width
             # pred_boxes[..., 3] = height
 
+            pred_vertex[..., 0] = -p1x + pred_boxes[..., 0]
+            pred_vertex[..., 1] = -p1y + pred_boxes[..., 1]
+            pred_vertex[..., 2] = -p2x + pred_boxes[..., 0]
+            pred_vertex[..., 3] = -p2y + pred_boxes[..., 1]
+            pred_vertex[..., 4] = -p3x + pred_boxes[..., 0]
+            pred_vertex[..., 5] = -p3y + pred_boxes[..., 1]
+            pred_vertex[..., 6] = -p4x + pred_boxes[..., 0]
+            pred_vertex[..., 7] = -p4y + pred_boxes[..., 1]
+
+            # pred_vertex[..., 0] = p1x + pred_boxes[..., 0]
+            # pred_vertex[..., 1] = p1y + pred_boxes[..., 1]
+            # pred_vertex[..., 2] = p2x + pred_boxes[..., 0]
+            # pred_vertex[..., 3] = p2y + pred_boxes[..., 1]
+            # pred_vertex[..., 4] = p3x + pred_boxes[..., 0]
+            # pred_vertex[..., 5] = p3y + pred_boxes[..., 1]
+            # pred_vertex[..., 6] = p4x + pred_boxes[..., 0]
+            # pred_vertex[..., 7] = p4y + pred_boxes[..., 1]
+
             # TODO using which vertex is a problem here., bingxin
             # pred_vertex[..., 0] = p1x * anchor_w + (grid_x.float() - anchor_w / 2) 
-            # pred_vertex[..., 1] = p1y * anchor_h + (grid_y.float() - anchor_h / 2 )
+            # pred_vertex[..., 1] = p1y * anchor_h + (grid_y.float() - anchor_h / 2)
             # pred_vertex[..., 2] = p2x * anchor_w + (grid_x.float() + anchor_w / 2) 
-            # pred_vertex[..., 3] = p2y * anchor_h + (grid_y.float() - anchor_h / 2 )
+            # pred_vertex[..., 3] = p2y * anchor_h + (grid_y.float() - anchor_h / 2)
             # pred_vertex[..., 4] = p3x * anchor_w + (grid_x.float() + anchor_w / 2) 
-            # pred_vertex[..., 5] = p3y * anchor_h + (grid_y.float() + anchor_h / 2 )
+            # pred_vertex[..., 5] = p3y * anchor_h + (grid_y.float() + anchor_h / 2)
             # pred_vertex[..., 6] = p4x * anchor_w + (grid_x.float() - anchor_w / 2) 
-            # pred_vertex[..., 7] = p4y * anchor_h + (grid_y.float() + anchor_h / 2 )
+            # pred_vertex[..., 7] = p4y * anchor_h + (grid_y.float() + anchor_h / 2)
             
             # # TODO chuanxing
-            pred_vertex[..., 0] = p1x * pred_boxes[..., 2] + (pred_boxes[..., 0] - pred_boxes[..., 2] / 2) 
-            pred_vertex[..., 1] = p1y * pred_boxes[..., 3] + (pred_boxes[..., 1] - pred_boxes[..., 3] / 2)
-            pred_vertex[..., 2] = p2x * pred_boxes[..., 2] + (pred_boxes[..., 0] + pred_boxes[..., 2] / 2) 
-            pred_vertex[..., 3] = p2y * pred_boxes[..., 3] + (pred_boxes[..., 1] - pred_boxes[..., 3] / 2)
-            pred_vertex[..., 4] = p3x * pred_boxes[..., 2] + (pred_boxes[..., 0] + pred_boxes[..., 2] / 2) 
-            pred_vertex[..., 5] = p3y * pred_boxes[..., 3] + (pred_boxes[..., 1] + pred_boxes[..., 3] / 2)
-            pred_vertex[..., 6] = p4x * pred_boxes[..., 2] + (pred_boxes[..., 0] - pred_boxes[..., 2] / 2) 
-            pred_vertex[..., 7] = p4y * pred_boxes[..., 3] + (pred_boxes[..., 1] + pred_boxes[..., 3] / 2)
+            # pred_vertex[..., 0] = p1x * pred_boxes[..., 2] + (pred_boxes[..., 0] - pred_boxes[..., 2] / 2) 
+            # pred_vertex[..., 1] = p1y * pred_boxes[..., 3] + (pred_boxes[..., 1] - pred_boxes[..., 3] / 2)
+            # pred_vertex[..., 2] = p2x * pred_boxes[..., 2] + (pred_boxes[..., 0] + pred_boxes[..., 2] / 2) 
+            # pred_vertex[..., 3] = p2y * pred_boxes[..., 3] + (pred_boxes[..., 1] - pred_boxes[..., 3] / 2)
+            # pred_vertex[..., 4] = p3x * pred_boxes[..., 2] + (pred_boxes[..., 0] + pred_boxes[..., 2] / 2) 
+            # pred_vertex[..., 5] = p3y * pred_boxes[..., 3] + (pred_boxes[..., 1] + pred_boxes[..., 3] / 2)
+            # pred_vertex[..., 6] = p4x * pred_boxes[..., 2] + (pred_boxes[..., 0] - pred_boxes[..., 2] / 2) 
+            # pred_vertex[..., 7] = p4y * pred_boxes[..., 3] + (pred_boxes[..., 1] + pred_boxes[..., 3] / 2)
             
+            # # TODO new  
+            # pred_vertex[..., 0] = p1x * anchor_w + (pred_boxes[..., 0] - pred_boxes[..., 2] / 2) 
+            # pred_vertex[..., 1] = p1y * anchor_h + (pred_boxes[..., 1] - pred_boxes[..., 3] / 2)
+            # pred_vertex[..., 2] = p2x * anchor_w + (pred_boxes[..., 0] + pred_boxes[..., 2] / 2) 
+            # pred_vertex[..., 3] = p2y * anchor_h + (pred_boxes[..., 1] - pred_boxes[..., 3] / 2)
+            # pred_vertex[..., 4] = p3x * anchor_w + (pred_boxes[..., 0] + pred_boxes[..., 2] / 2) 
+            # pred_vertex[..., 5] = p3y * anchor_h + (pred_boxes[..., 1] + pred_boxes[..., 3] / 2)
+            # pred_vertex[..., 6] = p4x * anchor_w + (pred_boxes[..., 0] - pred_boxes[..., 2] / 2) 
+            # pred_vertex[..., 7] = p4y * anchor_h + (pred_boxes[..., 1] + pred_boxes[..., 3] / 2)
+
             out = torch.cat((
                 pred_boxes.view(bs, -1, 4) * self.stride,
                 pred_vertex.view(bs, -1, 8) * self.stride,
@@ -129,6 +157,7 @@ class textbox_layer(nn.Module):
                                                             requestPrecision)
             
             numobj = tconf.sum().float()
+            numneg = (conf_mask == -1).sum().float()
             mask = tconf
 
             if numobj > 0:
@@ -138,22 +167,31 @@ class textbox_layer(nn.Module):
                 lw = self.mseLoss(w[mask], tw[mask])
                 lh = self.mseLoss(h[mask], th[mask])
 
-                # lconf = self.bceLoss(pred_conf[conf_mask != 0], tconf[conf_mask != 0].to(dtype=pred_conf.dtype))
-                lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
-                lconf_ob = self.bceLoss(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
-                lconf = lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
+                lconf = (numneg + numobj) / (numobj + 1) * self.bceLoss(pred_conf[conf_mask != 0], tconf[conf_mask != 0].to(dtype=pred_conf.dtype))
+                # lconf_bg = self.bceLoss(pred_conf[conf_mask == -1], tconf[conf_mask == -1].to(dtype=pred_conf.dtype))
+                # lconf_ob = self.bceLoss(pred_conf[conf_mask == 1], tconf[conf_mask == 1].to(dtype=pred_conf.dtype))
+                # lconf = lconf_bg + lconf_ob # 2. * lconf_bg + lconf_ob
 
                 lcls = self.bceLoss(pred_cls[mask], tcls[mask])
                 # lcls = self.crossentropy(pred_cls[mask], tcls[mask].argmax(1))
 
-                lp1x = self.smoothl1loss(p1x[mask], txp1[mask]) # self.smoothl1loss
-                lp1y = self.smoothl1loss(p1y[mask], typ1[mask])
-                lp2x = self.smoothl1loss(p2x[mask], txp2[mask])
-                lp2y = self.smoothl1loss(p2y[mask], typ2[mask])
-                lp3x = self.smoothl1loss(p3x[mask], txp3[mask])
-                lp3y = self.smoothl1loss(p3y[mask], typ3[mask])
-                lp4x = self.smoothl1loss(p4x[mask], txp4[mask])
-                lp4y = self.smoothl1loss(p4y[mask], typ4[mask])
+                # lp1x = self.smoothl1loss(p1x[mask], txp1[mask]) # self.smoothl1loss
+                # lp1y = self.smoothl1loss(p1y[mask], typ1[mask])
+                # lp2x = self.smoothl1loss(p2x[mask], txp2[mask])
+                # lp2y = self.smoothl1loss(p2y[mask], typ2[mask])
+                # lp3x = self.smoothl1loss(p3x[mask], txp3[mask])
+                # lp3y = self.smoothl1loss(p3y[mask], typ3[mask])
+                # lp4x = self.smoothl1loss(p4x[mask], txp4[mask])
+                # lp4y = self.smoothl1loss(p4y[mask], typ4[mask])
+
+                lp1x = self.l1loss(p1x[mask], txp1[mask])  # self.smoothl1loss
+                lp1y = self.l1loss(p1y[mask], typ1[mask]) 
+                lp2x = self.l1loss(p2x[mask], txp2[mask]) 
+                lp2y = self.l1loss(p2y[mask], typ2[mask]) 
+                lp3x = self.l1loss(p3x[mask], txp3[mask]) 
+                lp3y = self.l1loss(p3y[mask], typ3[mask]) 
+                lp4x = self.l1loss(p4x[mask], txp4[mask]) 
+                lp4y = self.l1loss(p4y[mask], typ4[mask]) 
 
             else:
                 lx, ly, lw, lh, lcls, lconf = [torch.tensor(0.).to(dtype=torch.float32, device=p.device)] * 6
