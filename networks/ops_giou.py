@@ -1,6 +1,15 @@
 import torch
 
-def compute_giou(bboxa, bboxb):
+
+
+def giou_loss(bboxa, bboxb):
+    '''
+    '''
+    return 1 - _compute_giou(bboxa, bboxb)
+
+
+
+def _compute_giou(bboxa, bboxb):
     '''
     bboxa: n x 4
     bbox: [x1 y1 x2 y2]
@@ -26,6 +35,3 @@ def compute_giou(bboxa, bboxb):
     giou = inter / union - (1 - union / areac)
     
     return giou
-
-
-
