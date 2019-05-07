@@ -1,7 +1,7 @@
 import json
 import os
 from labelme import utils
-from PIL import Image
+from PIL import Image, ImageDraw
 import numpy as np
 
 def labelme_parser(path):
@@ -33,8 +33,16 @@ def labelme_parser(path):
     ymax = np.minimum(np.max(blob['points'][:, :, 1], axis=1)[:, np.newaxis], image.shape[0] - 1)
     bboxes = np.hstack([xmin, ymin, xmax, ymax])
     blob['bboxes'] = bboxes
-
+    
     assert len(blob['labels']) == len(blob['points']), ''
+    
+    # im = Image.fromarray(image)
+    # draw = ImageDraw.Draw(im)
+    # for i in range(len(bboxes)):
+    #     draw.rectangle(list(bboxes[i]), outline='red')
+    #     draw.polygon(list(blob['points'][i].reshape(-1)), outline='yellow')
+    # im.save(f'{i}_test.jpg')
 
     return blob
+
 

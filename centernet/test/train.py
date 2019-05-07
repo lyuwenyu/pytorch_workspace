@@ -32,14 +32,13 @@ def train(model, dataloader, optimizer, scheduler, epoch=0):
         for k in result:
             p = result[k].permute(0, 2, 3, 1)
             if k == 'hm':
-                # losses[k] = F.binary_cross_entropy_with_logits(p, blob[k])
                 losses[k] = crit.binary_focal_loss_with_logits(p, blob[k])
             elif k == 'wh':
                 losses[k] = 0.2 * F.l1_loss(p[mask], blob[k][mask])
-                # losses[k] = crit.giou_loss(p[mask], blob[k][mask]) 
+            elif k == 'quad':
+                losses[k] = 0.4 * F.l1_loss(p[mask], blob[k][mask])
             elif k == 'off':
-                p = p.sigmoid()
-                losses[k] = F.l1_loss(p[mask], blob[k][mask])
+                losses[k] = 2 * F.l1_loss(p[mask], blob[k][mask])
 
         tloss = sum(losses.values())
         

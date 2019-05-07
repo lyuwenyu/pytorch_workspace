@@ -39,15 +39,17 @@ class DetDataset(data.Dataset):
         
         image = blob['imageData']
         labels = blob['labels']
-        points = blob['points']
-        bboxes = blob['bboxes']
+        points = blob['points'] / [blob['width'], blob['height']]
+        bboxes = blob['bboxes'] / ([blob['width'], blob['height']] * 2)
 
         # augmentor
-        anns = {'image': image, 'bboxes': bboxes, 'labels': labels}
-        result = self.augmentor(**anns)
-        image = np.array(result['image'])
-        bboxes = np.array(result['bboxes'])
-        labels = np.array(result['labels'])
+        # anns = {'image': image, 'bboxes': bboxes, 'labels': labels}
+        # result = self.augmentor(**anns)
+        # image = np.array(result['image'])
+        # bboxes = np.array(result['bboxes'])
+        # labels = np.array(result['labels'])
+        image = Image.fromarray(image).resize((640, 640))
+        image = np.array(image)
         
         if len(labels) == 0:
             print('---------')
@@ -60,30 +62,34 @@ class DetDataset(data.Dataset):
         
         wh = np.zeros((oh, ow, 2), dtype=np.float32)
         off = np.zeros((oh, ow, 2), dtype=np.float32)
+        quad = np.zeros((oh, ow, 8), dtype=np.float32)
         mask = np.zeros((oh, ow), dtype=np.uint8)
 
         for k in range(len(labels)):
-            bbx = bboxes[k] / self.cfg['stride']
+            bbx = bboxes[k] * ([iw, ih] * 2) / self.cfg['stride']
+            pts = points[k] * [iw, ih] / self.cfg['stride']
+
             lab = 0 # int(labels[k])
-            w, h = bbx[2]-bbx[0], bbx[3]-bbx[1]
-            cx, cy = (bbx[2]+bbx[0])/2, (bbx[3]+bbx[1])/2
+            w, h = bbx[2] - bbx[0], bbx[3] - bbx[1]
+            cx, cy = (bbx[2] + bbx[0]) / 2, (bbx[3] + bbx[1]) / 2
             ci, cj = int(cx), int(cy)
 
             radius = max(0, int(utils.gaussian_radius((math.ceil(h), math.ceil(w)))))
             utils.draw_umich_gaussian(hm[:, :, lab], (ci, cj), radius)
 
             wh[cj, ci, :] = w, h
-            off[cj, ci, :] = cx-ci, cy-cj
+            off[cj, ci, :] = cx - ci, cy - cj
+            quad[cj, ci, :] = (pts - [cx, cy]).reshape(8)
             mask[cj, ci] = 1
 
         if self.cfg['debug']:
             name = str(time.time())
-            self.show_bbox(image, bboxes, name)
+            self.show_bbox(image, bboxes, points, name)
             self.show_gaussian(hm, name)
 
         image = self.totensor(image)
 
-        target = {'image': image, 'hm': hm, 'wh': wh, 'off': off, 'mask': mask}
+        target = {'image': image, 'hm': hm, 'quad': quad, 'wh': wh, 'off': off, 'mask': mask}
 
         return target
    
@@ -109,12 +115,15 @@ class DetDataset(data.Dataset):
         _im.save(f'./tmp/{name}_heatmap.jpg')
 
 
-    def show_bbox(self, image, bboxes, name=''):
+    def show_bbox(self, image, bboxes, quad, name=''):
         '''
         '''
         _img = Image.fromarray(image)
+        _w, _h = _img.size
         _draw = ImageDraw.Draw(_img)
-        for bbx in bboxes:
-            _draw.rectangle(tuple(bbx), outline='red')
+        for i in range(len(bboxes)):
+            _draw.rectangle(tuple(bboxes[i] * ([_w, _h]*2)), outline='red')
+            _draw.polygon(tuple((quad[i] * [_w, _h]).reshape(-1)), outline='yellow')
+
         _img.save(f'./tmp/{name}_bbox.jpg')
 

@@ -16,9 +16,10 @@ import numpy as np
 import time
 import glob
 import random
+import os
 print(cfg.dataset)
 
-device = torch.device('cuda:1')
+device = torch.device('cuda:0')
 
 if __name__ == '__main__':
 
@@ -26,16 +27,24 @@ if __name__ == '__main__':
     dataloader = data.DataLoader(dataset, batch_size=1, shuffle=True)
 
     mm = pose_dla_dcn.get_pose_net('34', cfg.network['heads'], 1)
-    print(mm)
-    mm.load_state_dict(torch.load('./tmp/state-ckpt-epoch-00110')['model'])
+    mm.load_state_dict(torch.load('./tmp/state-ckpt-epoch-00100')['model'])
     mm = mm.to(device)
     mm.eval()
 
-    paths = glob.glob('../../../tmp/images/1/*.jpg')
+    with open('./test/test.txt', 'r') as f:
+        lines = f.readlines()
+        lines = [lin.strip() for lin in lines]
+        paths = [os.path.join('../../tmp/images/1', lin) for lin in lines]
+
+    print(len(paths))
     random.shuffle(paths)
 
+    pool = nn.MaxPool2d(4, 4, return_indices=True)
+    up = nn.MaxUnpool2d(4, 4) 
+
     with torch.no_grad():
-        for i, path in enumerate(paths[:10]):
+        for i, path in enumerate(paths):
+            print(i, path)
             im = Image.open(path).resize((cfg.width, cfg.height))
             draw = ImageDraw.Draw(im)
             data = (np.array(im)/255. - cfg.mean) / cfg.std
@@ -44,19 +53,30 @@ if __name__ == '__main__':
 
             output = mm(data)
             heatmap = output['hm'].sigmoid()
+            
+            _hm, _idx = pool(heatmap)
+            heatmap = up(_hm, _idx)
+
 
             hm = heatmap.cpu().data.numpy()[0, 0]
             _im = np.floor(hm * 255)
             _im = Image.fromarray(_im).convert('L')
-            # _im = _im.resize((cfg.width, cfg.height))
             _im.save(f'./tmp/{i}_hm.jpg')
             
-            for jj, ii in zip(*np.where(hm > 0.5)):
-                cx = cfg.stride * (ii + output['off'][0, 0, jj, ii].sigmoid()).item()
-                cy = cfg.stride * (jj + output['off'][0, 1, jj, ii].sigmoid()).item()
+            for jj, ii in zip(*np.where(hm > 0.9)):
+                cx = cfg.stride * (ii + output['off'][0, 0, jj, ii]).item()
+                cy = cfg.stride * (jj + output['off'][0, 1, jj, ii]).item()
+
                 w =  cfg.stride * (output['wh'][0, 0, jj, ii]).item()
                 h =  cfg.stride * (output['wh'][0, 1, jj, ii]).item()
-                draw.rectangle((cx-w/2, cy-h/2, cx+w/2, cy+h/2), outline='red')
+                bbx = (cx-w/2, cy-h/2, cx+w/2, cy+h/2)
+                draw.rectangle(bbx, outline='red')
+                
+                quad = output['quad'][0, :, jj, ii].cpu().data.numpy() * cfg.stride + [cx, cy] * 4
+                draw.polygon(list(quad), outline='yellow')
+                
+                print('bbx: ', bbx)
+                print('whs: ', quad)
 
             im.save(f'tmp/{i}_im.jpg')
 
