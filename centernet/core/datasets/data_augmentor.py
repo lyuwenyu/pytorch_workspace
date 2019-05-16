@@ -4,7 +4,7 @@ import albumentations
 from albumentations import OneOf, Compose
 
 
-def bbox_augmentation(cfg): 
+def bboxes_augmentation(cfg): 
     '''
     '''
 
@@ -37,4 +37,20 @@ def bbox_augmentation(cfg):
 
     return Compose(transforms, bbox_params=bbox_params, p=1.)
 
+
+def points_augmentation(cfg):
+    '''(image=image, keypoints=points)
+    '''
+    transforms = []
+    transforms += [albumentations.HorizontalFlip(p=0.5)]
+    transforms += [albumentations.ShiftScaleRotate(rotate_limit=20, p=0.3)]
+    transforms += [albumentations.RandomSizedCrop((480, 720), height=640, width=640, p=0.3)]
+
+    transforms += [albumentations.RandomBrightness(limit=0.2, p=0.2),
+                albumentations.RandomContrast(limit=0.2, p=0.2),
+                albumentations.Blur(blur_limit=5, p=0.2),
+                albumentations.GaussNoise(var_limit=(5, 20), p=0.2),
+                albumentations.ChannelShuffle(p=0.2),]
+
+    return Compose(transforms, keypoint_params={'format': 'xy'}, p=1.0)
 
