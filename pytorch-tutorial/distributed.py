@@ -1,3 +1,6 @@
+"""
+python -m torch.distributed.launch --nproc_per_node=2 distributed.py
+"""
 import torch
 import torch.nn as nn
 import torch.distributed as dist
@@ -53,7 +56,6 @@ if __name__ == '__main__':
     t = tensor_gather(data)
 
     if args.local_rank == 0:
-        
         for tt in t:
             print(tt.sum(), tt.shape)
 
