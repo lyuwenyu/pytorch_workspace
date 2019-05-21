@@ -52,12 +52,14 @@ if __name__ == '__main__':
 
     im = torch.randn(10, 3, 100, 100).cuda()
     data = m(im)
-
+    
     t = tensor_gather(data)
-
+    
     if args.local_rank == 0:
         for tt in t:
             print(tt.sum(), tt.shape)
 
-
+    # TODO
+    for n, p in m.named_parameters():
+        print(n, p.shape, p.sum().item(), p.mean().item())
 
