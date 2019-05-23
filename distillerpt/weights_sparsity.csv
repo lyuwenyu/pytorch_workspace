@@ -1,0 +1,9 @@
+parameter,shape,volume,sparse volume,sparsity level
+features.0.weight,"(64, 3, 11, 11)",23232,23232,0.0
+features.3.weight,"(192, 64, 5, 5)",307200,307200,0.0
+features.6.weight,"(384, 192, 3, 3)",663552,663552,0.0
+features.8.weight,"(256, 384, 3, 3)",884736,884736,0.0
+features.10.weight,"(256, 256, 3, 3)",589824,589824,0.0
+classifier.1.weight,"(4096, 9216)",37748736,37748736,0.0
+classifier.4.weight,"(4096, 4096)",16777216,16777216,0.0
+classifier.6.weight,"(1000, 4096)",4096000,4096000,0.0

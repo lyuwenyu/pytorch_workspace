@@ -1,0 +1,31 @@
+version: 1
+pruners:
+  pruner1:
+    class: 'SensitivityPruner'
+    sensitivities:
+      'features.module.0.weight': 0.25
+      'features.module.3.weight': 0.35
+      'features.module.6.weight': 0.40
+      'features.module.8.weight': 0.45
+      'features.module.10.weight': 0.55
+      'classifier.1.weight': 0.875
+      'classifier.4.weight': 0.875
+      'classifier.6.weight': 0.625
+
+lr_schedulers:
+   pruning_lr:
+     class: ExponentialLR
+     gamma: 0.9
+
+policies:
+  - pruner:
+      instance_name : 'pruner1'
+    starting_epoch: 0
+    ending_epoch: 38
+    frequency: 2
+
+  - lr_scheduler:
+      instance_name: pruning_lr
+    starting_epoch: 24
+    ending_epoch: 200
+    frequency: 1
