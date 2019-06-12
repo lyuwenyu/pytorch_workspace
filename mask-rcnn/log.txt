@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "train.py", line 32, in <module>
+    engine.evaluate(model, test_dataloader, device=device)
+  File "./mask-rcnn/references/detection/engine.py", line 30, in train_one_epoch
+    loss_dict = model(images, targets)
+  File "~/anaconda3/envs/python36/lib/python3.6/site-packages/torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+  File "~/anaconda3/envs/python36/lib/python3.6/site-packages/torchvision/models/detection/generalized_rcnn.py", line 48, in forward
+    features = self.backbone(images.tensors)
+  File "~/anaconda3/envs/python36/lib/python3.6/site-packages/torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+  File "~/anaconda3/envs/python36/lib/python3.6/site-packages/torch/nn/modules/container.py", line 92, in forward
+    input = module(input)
+  File "~/anaconda3/envs/python36/lib/python3.6/site-packages/torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+  File "~/anaconda3/envs/python36/lib/python3.6/site-packages/torchvision/models/_utils.py", line 58, in forward
+    x = module(x)
+  File "~/anaconda3/envs/python36/lib/python3.6/site-packages/torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+RuntimeError: /pytorch/torch/csrc/jit/fuser/cuda/fused_kernel.cpp:202: a PTX JIT compilation failed
